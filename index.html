@@ -87,6 +87,27 @@ button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,te
  .foot,.footer{flex-direction:column;align-items:flex-start}
 }
 
+
+/* Contest discovery cards: high-readability typography */
+.discovery-results{gap:16px;margin-top:18px}
+.discovery-card{padding:22px;border-radius:14px}
+.discovery-card h3{font-size:22px;line-height:1.65;margin:14px 0 8px}
+.discovery-card-top{gap:12px}
+.discovery-tag{font-size:15px;line-height:1.5;padding:7px 10px}
+.discovery-kind{font-size:14px}
+.discovery-host{font-size:16px;line-height:1.8;margin:0 0 14px;color:#52685a}
+.discovery-desc{font-size:18px;line-height:2;color:#35483c;margin:12px 0 16px}
+.discovery-meta{gap:8px;font-size:15px;line-height:1.8;padding-top:14px}
+.discovery-deadline{font-size:17px;line-height:1.9;padding:15px;margin-top:14px}
+.discovery-deadline small{font-size:14px;line-height:1.8;display:inline-block;margin-top:5px}
+.discovery-actions{gap:10px;margin-top:16px}
+.discovery-actions a,.discovery-actions button{font-size:16px;line-height:1.6;padding:12px 14px;min-height:48px}
+.discovery-status{font-size:15px;line-height:1.8}
+.discovery-note{font-size:14px;line-height:1.8}
+.discovery-links a{font-size:15px;line-height:1.7}
+@media(max-width:900px){.discovery-results{grid-template-columns:1fr}.discovery-card{padding:20px}.discovery-card h3{font-size:22px}.discovery-desc{font-size:18px}}
+@media(max-width:560px){.discovery-card{padding:17px}.discovery-card h3{font-size:21px}.discovery-desc{font-size:17px;line-height:1.95}.discovery-host{font-size:15px}.discovery-meta{font-size:14px}.discovery-deadline{font-size:16px}}
+
 </style></head><body>
 <div class="app"><aside class="side"><div class="logo">CS</div><strong>比賽快篩</strong><small>MY CONTEST WORKBENCH</small><nav class="nav"><button class="active" data-view="screen">⌕ 簡章快篩</button><button data-view="post">▤ 貼文快篩</button><button data-view="discover">↗ 找比賽線索</button><button data-view="rules">☷ 我的參賽規則</button></nav><div class="private">● 私人工作台 · v2 測試版</div></aside>
 <main class="main"><header class="top"><span>工作台 / <b id="crumb">簡章快篩</b></span><span class="pill">TEST BUILD 2.0</span></header>
