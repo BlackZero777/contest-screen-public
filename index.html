@@ -7,6 +7,86 @@
 
 .discovery-tools{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px}.discovery-tools .field{min-width:0}.discovery-toolbar{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-top:14px}.discovery-toolbar .btn{cursor:pointer}.discovery-toolbar .btn:disabled{opacity:.65;cursor:wait}.discovery-links{display:flex;gap:10px;flex-wrap:wrap;margin-top:12px}.discovery-links a,.discovery-actions a{font-size:10px;color:#3e7056;text-decoration:none;border:1px solid #dce7dd;border-radius:7px;padding:7px 9px;background:#f7faf6}.discovery-status{font-size:10px;color:var(--muted);margin:14px 0}.discovery-results{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:12px}.discovery-card{background:#fff;border:1px solid var(--line);border-radius:12px;padding:15px;min-width:0}.discovery-card h3{font-size:14px;line-height:1.5;margin:10px 0 5px}.discovery-card-top{display:flex;justify-content:space-between;gap:8px;align-items:center}.discovery-tag{font-size:9px;padding:4px 7px;border-radius:5px;background:#eaf2eb;color:#426d50}.discovery-kind{font-size:9px;color:var(--muted)}.discovery-host{font-size:10px;color:#65786b;margin:0 0 10px}.discovery-desc{font-size:11px;color:#59685f;line-height:1.7}.discovery-meta{display:flex;flex-direction:column;gap:3px;font-size:9px;color:#8a978e;border-top:1px solid #edf1ed;padding-top:9px}.discovery-deadline{font-size:10px;color:#86692f;background:#fcf6e9;border:1px solid #f0e5cc;border-radius:7px;padding:9px;margin-top:10px}.discovery-deadline small{color:#a28d66}.discovery-actions{display:flex;gap:7px;flex-wrap:wrap;margin-top:12px}.discovery-actions a{display:inline-block}.discovery-note{font-size:10px;color:var(--muted);margin-top:10px}
 
+
+/* 2026-10-21 readability update */
+body{font-size:18px;line-height:1.8}
+.side{padding:28px 20px}
+.side strong{font-size:21px}
+.side small{font-size:13px}
+.nav{gap:10px}
+.nav button{font-size:17px;padding:14px 13px;line-height:1.5}
+.private{font-size:14px;line-height:1.7}
+.main{padding:0 42px 36px}
+.top{height:68px;font-size:15px}
+.pill{font-size:13px;padding:6px 10px}
+.hero{padding:40px 0 30px}
+.eyebrow{font-size:14px;letter-spacing:.1em}
+.hero h1{font-size:46px}
+.hero p{font-size:17px;line-height:1.8}
+.orbit span{font-size:16px}
+.cat,.card,.source,.rule{padding:20px}
+.cat{font-size:18px}
+.cat small{font-size:15px;line-height:1.7}
+.heading{margin-bottom:22px}
+.heading h2{font-size:30px;line-height:1.4}
+.heading p{font-size:16px;line-height:1.8}
+.step{font-size:13px}
+.field{gap:9px}
+.field span{font-size:17px;line-height:1.6}
+.field input,.field select,.field textarea{font-size:18px;padding:14px;line-height:1.8}
+.field textarea{min-height:220px}
+.btn{font-size:18px;padding:15px 20px;min-height:52px;cursor:pointer}
+.notice{padding:18px 20px;font-size:16px;line-height:1.8}
+.notice p{font-size:16px;line-height:1.8}
+.searches button{font-size:17px;padding:14px 17px;min-height:50px}
+.source,.rule{font-size:17px;line-height:1.8}
+.source small,.rule li{font-size:15px;line-height:1.8}
+.rule ul{padding-left:22px}
+.foot,.footer{font-size:14px;line-height:1.8}
+.result-head{padding:22px;gap:18px}
+.result-head h3{font-size:25px;line-height:1.5}
+.result-head small{font-size:15px;line-height:1.8}
+.decision{font-size:15px;padding:9px 12px;white-space:normal}
+.result-body{padding:22px;font-size:18px;line-height:1.85}
+.reasons{font-size:16px;line-height:1.9;padding-left:24px}
+.checks{gap:12px}
+.check{padding:15px}
+.check b{font-size:15px;line-height:1.7}
+.check p{font-size:15px;line-height:1.8}
+.warning,.empty,.source-link{font-size:16px;line-height:1.85}
+button,input,select,textarea{font-family:inherit}
+button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible{outline:3px solid #4c8064;outline-offset:3px}
+@media(max-width:900px){
+ .app{grid-template-columns:1fr}
+ .side{position:relative;top:auto;height:auto;min-height:0;padding:18px 18px}
+ .logo{width:44px;height:44px}
+ .nav{grid-template-columns:repeat(2,minmax(0,1fr));margin-top:18px}
+ .private{margin-top:18px}
+ .main{padding:0 20px 30px}
+ .hero{grid-template-columns:1fr;padding:28px 0 22px}
+ .hero h1{font-size:38px}
+ .orbit{display:none}
+ .heading h2{font-size:27px}
+ .sources,.rules{grid-template-columns:1fr}
+}
+@media(max-width:560px){
+ body{font-size:17px}
+ .main{padding:0 14px 24px}
+ .top{height:auto;min-height:58px;gap:10px;font-size:13px}
+ .hero h1{font-size:34px}
+ .hero p{font-size:16px}
+ .cats,.grid,.checks{grid-template-columns:1fr}
+ .heading{gap:8px}
+ .heading h2{font-size:25px}
+ .heading p{font-size:15px}
+ .step{display:none}
+ .field input,.field select,.field textarea{font-size:17px}
+ .result-head{flex-direction:column}
+ .decision{align-self:flex-start}
+ .result-body{padding:16px}
+ .foot,.footer{flex-direction:column;align-items:flex-start}
+}
+
 </style></head><body>
 <div class="app"><aside class="side"><div class="logo">CS</div><strong>比賽快篩</strong><small>MY CONTEST WORKBENCH</small><nav class="nav"><button class="active" data-view="screen">⌕ 簡章快篩</button><button data-view="post">▤ 貼文快篩</button><button data-view="discover">↗ 找比賽線索</button><button data-view="rules">☷ 我的參賽規則</button></nav><div class="private">● 私人工作台 · v2 測試版</div></aside>
 <main class="main"><header class="top"><span>工作台 / <b id="crumb">簡章快篩</b></span><span class="pill">TEST BUILD 2.0</span></header>
@@ -33,7 +113,7 @@
 <div class="sources"><a class="source" href="https://data.gov.tw/dataset/6008" target="_blank" rel="noopener noreferrer"><b>文化部競賽活動公開資料 ↗</b><small>涵蓋繪畫、歌唱等競賽型藝文資訊；每日更新。</small></a><a class="source" href="https://data.gov.tw/dataset/6007" target="_blank" rel="noopener noreferrer"><b>文化部公開徵選活動 ↗</b><small>涵蓋美展、創意大賞等公開徵選；每日更新。</small></a><a class="source" href="https://ed.arte.gov.tw/ch/content/m_compete.aspx" target="_blank" rel="noopener noreferrer"><b>臺灣藝術教育網比賽徵件 ↗</b><small>補充查找藝術教育相關活動與官方網站。</small></a></div>
 </section>
 <section class="view" id="view-rules"><div class="heading"><div><div class="eyebrow">04 / MY FILTER</div><h2>我的參賽規則</h2><p>先排除不符合能力、成本與評選偏好的活動。</p></div><span class="step">MY RULES</span></div><div class="rules"><article class="rule"><b>✳ 優先考慮</b><ul><li>允許 AI 生成主要畫面的純圖像創作。</li><li>AI 單張主圖轉短動畫。</li><li>AI 音樂／歌曲（須核對工具、授權與費用）。</li><li>命名、短標語、小詩、對聯等低投入文字。</li><li>評審主導，人氣獎不影響主獎。</li></ul></article><article class="rule"><b>× 直接排除或高度警戒</b><ul><li>限定手繪、禁止數位工具。</li><li>必須製作實品、模型或實體產品。</li><li>要求產品功能、結構、材料工法、打樣或量產成本。</li><li>主獎人氣比重達 50%，或先靠票數入圍。</li><li>完整影片、多鏡頭、真人拍攝另行評估。</li></ul></article><article class="rule"><b>? 必須查清楚</b><ul><li>AI 允許主畫面、僅能輔助或完全禁止。</li><li>未載明費用不等於免費。</li><li>身分、年齡、居住地、組別及團隊資格。</li><li>附件、檔案格式、交件數量與截止時間。</li><li>人氣投票是否影響主獎或入圍。</li></ul></article></div><div class="notice"><b>重要原則</b><p>主辦方自行印製圖像不等於參賽者須製作實品。FB 廣告可以作線索，最後以當屆官方簡章及附件為準。</p></div></section>
-<footer class="footer"><span>比賽快篩｜我的參賽工作台</span><span>v2 測試版 · 尚未部署 · 不儲存貼上內容</span></footer></main></div>
+<footer class="footer"><span>比賽快篩｜我的參賽工作台</span><span>v2 公開版 · 貼上內容僅在目前頁面處理，不會送至後端</span></footer></main></div>
 <script src="rules.js"></script><script src="contest-feed.js"></script><script src="discover.js"></script><script>
 (function(){'use strict';const $=id=>document.getElementById(id),names={screen:'簡章快篩',post:'貼文快篩',discover:'找比賽線索',rules:'我的參賽規則'};
 document.querySelectorAll('[data-view]').forEach(b=>b.addEventListener('click',()=>{document.querySelectorAll('[data-view]').forEach(x=>x.classList.toggle('active',x===b));document.querySelectorAll('.view').forEach(v=>v.classList.toggle('active',v.id==='view-'+b.dataset.view));$('crumb').textContent=names[b.dataset.view];window.scrollTo(0,0)}));
