@@ -108,6 +108,13 @@ button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,te
 @media(max-width:900px){.discovery-results{grid-template-columns:1fr}.discovery-card{padding:20px}.discovery-card h3{font-size:22px}.discovery-desc{font-size:18px}}
 @media(max-width:560px){.discovery-card{padding:17px}.discovery-card h3{font-size:21px}.discovery-desc{font-size:17px;line-height:1.95}.discovery-host{font-size:15px}.discovery-meta{font-size:14px}.discovery-deadline{font-size:16px}}
 
+
+.raw-data-details{margin-top:22px;border-top:1px solid var(--line);padding-top:14px;color:var(--muted);font-size:14px;line-height:1.8}
+.raw-data-details summary{cursor:pointer;font-size:15px;font-weight:600;color:#617267;padding:10px 0}
+.raw-data-details p{font-size:14px;line-height:1.8;margin:8px 0}
+.raw-data-details .discovery-links{display:flex;flex-wrap:wrap;gap:10px}
+.raw-data-details .discovery-links a{font-size:14px;line-height:1.7;padding:9px 12px;border:1px solid var(--line);border-radius:8px;text-decoration:none}
+
 </style></head><body>
 <div class="app"><aside class="side"><div class="logo">CS</div><strong>比賽快篩</strong><small>MY CONTEST WORKBENCH</small><nav class="nav"><button class="active" data-view="screen">⌕ 簡章快篩</button><button data-view="post">▤ 貼文快篩</button><button data-view="discover">↗ 找比賽線索</button><button data-view="rules">☷ 我的參賽規則</button></nav><div class="private">● 私人工作台 · v2 測試版</div></aside>
 <main class="main"><header class="top"><span>工作台 / <b id="crumb">簡章快篩</b></span><span class="pill">TEST BUILD 2.0</span></header>
@@ -125,9 +132,9 @@ button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,te
 <label class="field"><span>活動名稱／主辦／關鍵字</span><input id="discoveryKeyword" placeholder="例如：AI、插畫、對聯、歌曲、海報"></label>
 </div>
 <div class="discovery-toolbar"><button class="btn" id="loadOpenData">嘗試即時更新公開資料 ↻</button><span class="discovery-note">這個測試分支已完成首次資料同步；每日自動更新需合併到 main 後才生效。按鈕也會嘗試即時讀取（瀏覽器可能受跨來源限制）。</span></div>
-<div id="openRawFeeds" class="discovery-links"></div>
 <div id="discoveryStatus" class="discovery-status">同步後會自動顯示公開資料；也可按按鈕嘗試即時更新。</div>
 <div id="discoveryResults" class="discovery-results"><div class="empty">載入後會顯示候選活動、資料日期、可能的期限線索及官方查核入口。</div></div>
+<details class="raw-data-details"><summary>進階資料來源（平常不需要點開）</summary><p>以下是供網站或進階查核使用的文化部原始資料，格式不適合直接閱讀。</p><div id="openRawFeeds" class="discovery-links"></div></details>
 </div>
 <div class="heading" style="margin-top:28px"><div><div class="eyebrow">SEARCH SHORTCUTS</div><h2>補充搜尋</h2><p>公開資料可能漏掉民間、學校或新發布的徵件；可再用搜尋引擎補查。</p></div></div>
 <div class="card"><div class="grid"><label class="field"><span>想找哪類比賽？</span><select id="discoverCategory"><option>AI 插畫 海報 漫畫 設計比賽</option><option>AI 圖轉動畫 單張圖片 動畫 競賽</option><option>AI 音樂 AI 歌曲 徵件比賽</option><option>命名 標語 短詩 對聯 徵件比賽</option><option>社會人士 全國 創作徵件比賽</option></select></label><label class="field"><span>加上關鍵字（選填）</span><input id="discoverExtra" placeholder="例如：2026、台灣、AI 生成"></label></div><div class="searches"><button data-search="google">Google 搜尋 ↗</button><button data-search="bing">Bing 搜尋 ↗</button><button data-search="facebook">搜尋 Facebook 貼文 ↗</button></div></div>
