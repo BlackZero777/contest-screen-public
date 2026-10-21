@@ -1,0 +1,50 @@
+name: Sync public contest data
+
+on:
+  push:
+    branches:
+      - main
+    paths-ignore:
+      - contest-feed.js
+  schedule:
+    - cron: '17 2 * * *'
+  workflow_dispatch:
+
+concurrency:
+  group: contest-sync-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: write
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: true
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Check JavaScript syntax and screening rules
+        run: |
+          node --check rules.js
+          node --check discover.js
+          node --check scripts/sync-contests.mjs
+          node test-rules.js
+      - name: Synchronize public contest data
+        run: node scripts/sync-contests.mjs
+      - name: Commit updated data cache
+        run: |
+          if git diff --quiet -- contest-feed.js; then
+            echo 'Contest cache is unchanged.'
+            exit 0
+          fi
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add contest-feed.js
+          git commit -m 'Refresh public contest data cache'
+          git push
