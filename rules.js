@@ -25,7 +25,7 @@ const RE={
  presentation:/設計圖面|設計說明|設計看板|a2|看板|提案書|簡報檔|概念提案/i,
  prototype:/模型|原型|打樣|實體樣品|實品|樣機|材料加工|功能測試|量產規劃|現場簡報|親赴現場|現場出席|90.{0,4}150秒|設計特點說明影片/i
 };
-const clean=s=>String(s||'').replace(/[\\s　]+/g,'');
+const clean=s=>String(s||'').replace(/[\s　]+/g,'');
 const has=(s,r)=>r.test(clean(s));
 function category(s){
  if(has(s,RE.music))return 'AI音樂';
@@ -55,12 +55,12 @@ function aiPolicy(s){
  if(has(s,RE.aiAllowed))return {label:'有 AI 允許線索，範圍待確認',level:'allowed',detail:'核對主畫面生成、工具限制、揭露方式與授權條款。'};
  return {label:'未確認',level:'unknown',detail:'未辨識到 AI 規範不代表允許 AI，須查完整簡章與附件。'};
 }
-function dates(s){const m=clean(s).match(/(?:20\\d{2}[年./-]\\d{1,2}[月./-]\\d{1,2}日?|民國\\d{2,3}年\\d{1,2}月\\d{1,2}日)/g);return m?[...new Set(m)].slice(0,6):[];}
+function dates(s){const m=clean(s).match(/(?:20\d{2}[年./-]\d{1,2}[月./-]\d{1,2}日?|民國\d{2,3}年\d{1,2}月\d{1,2}日)/g);return m?[...new Set(m)].slice(0,6):[];}
 function assess(text,opts){
  const s=String(text||''),o=opts||{},cat=category(s),fmt=format(s),ai=aiPolicy(s),reasons=[],warnings=[];
  const hasConcept=/概念設計組|概念設計/i.test(s),hasProductGroup=/產品設計組|產品設計/i.test(s),multiGroup=(has(s,RE.groups)||hasConcept&&hasProductGroup);
- const prelimText=(s.match(/(?:初審|初選|第一階段)[^。；\\n]{0,220}/g)||[]).join('；');
- const finalText=(s.match(/(?:決審|複審|決選|入圍後|第二階段)[^。；\\n]{0,260}/g)||[]).join('；');
+ const prelimText=(s.match(/(?:初審|初選|第一階段)[^。；\n]{0,220}/g)||[]).join('；');
+ const finalText=(s.match(/(?:決審|複審|決選|入圍後|第二階段)[^。；\n]{0,260}/g)||[]).join('；');
  const hasFinalPrototype=has(s,RE.prototype)&& (has(s,RE.final)||has(s,RE.physical)||/模型／原型|製作模型|親赴現場/i.test(s));
  const hasPrelimRequirements=has(s,RE.prelim)||has(s,RE.presentation)||/a2橫式|最多3張|最多三張/i.test(clean(s));
  let decision=cat==='文字／文學'?'文字類候選，待核對規格':'設計類候選，待核對規格';
