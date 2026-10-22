@@ -84,7 +84,7 @@ async function fetchSearchQuery(query, index) {
     const title = xmlValue(block, 'title');
     const link = xmlValue(block, 'link');
     const description = xmlValue(block, 'description');
-    if (!title || !/^https?:\\/\\//i.test(link)) return null;
+    if (!title || !/^https?:\/\//i.test(link)) return null;
     return normalizeItem({
       UID: 'bing:' + link,
       title,
