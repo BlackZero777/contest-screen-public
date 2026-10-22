@@ -79,7 +79,7 @@ async function fetchSearchQuery(query, index) {
   if (!response.ok) throw new Error('Bing RSS HTTP ' + response.status);
   const xml = await response.text();
   if (!/<rss[\\s>]/i.test(xml)) throw new Error('搜尋來源未回傳 RSS');
-  const items = [...xml.matchAll(/<item(?:\\s[^>]*)?>([\\s\\S]*?)<\\/item>/gi)].map(match => {
+  const items = [...xml.matchAll(/<item(?:\s[^>]*)?>([\s\S]*?)<\/item>/gi)].map(match => {
     const block = match[1];
     const title = xmlValue(block, 'title');
     const link = xmlValue(block, 'link');
