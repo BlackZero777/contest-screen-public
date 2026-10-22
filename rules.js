@@ -66,7 +66,7 @@ function assess(text,opts){
  let decision=cat==='文字／文學'?'文字類候選，待核對規格':'設計類候選，待核對規格';
  let feasibility='待官方簡章確認',exclusionReason='尚無足夠已核實條件可排除';
  const checks={
- '參賽資格':(o.identity?'身分選擇：'+o.identity+'；':'')+'仍須核對年齡、居住地、組別及團隊限制。',
+ '參賽資格':'使用者已確認為成年參賽者、非學生；不得再詢問是否為學生或要求選擇學生／成人身分。只需依官方簡章核對國籍／居住地、組別、團隊人數等其他實際限制；若簡章確有成年／學生專屬組別，再直接套用已知身分判斷。',
  'AI 規範':ai.label+'。'+ai.detail,
  '費用':/報名免費|免報名費/.test(clean(s))?'有免報名費線索；仍須確認保證金、工具訂閱、材料與交件等其他成本。':(has(s,RE.fee)?'原文提及費用項目；確認金額、是否必繳及適用組別。':'未辨識到費用不等於免費；報名費、保證金、工具訂閱、製作與交件費用待確認。'),
  '評選方式':'待核對主獎是否評審主導、人氣權重及投票是否影響入圍。',
@@ -124,7 +124,7 @@ function assess(text,opts){
  else if(/攝影/i.test(s))workflow='先確認是否接受 AI 作品、是否必須原創攝影、允許的後製範圍及原始檔要求，再規劃符合規則的拍攝或數位方案。';
  else if(/詩|文學|徵文|對聯|徵聯|短詩|標語|命名|文案/i.test(s))workflow='先解讀題目與規格，再與我共同構思多個方向、比較優缺點、反覆修改，最後檢查字數、格式、原創性及投稿要求。';
  else if(/動畫|影片|mv|影音|分鏡/i.test(s))workflow='先確認片長、比例、格式、AI政策及製作負擔，再規劃分鏡與時間軸，統計新生成素材、靜圖轉動畫、可重用素材及純後製數量，逐步協助生成、剪輯與驗收。';
- const handoffPrompt='請接手協助我參加以下競賽，依序查核與執行，不要只給一般建議。\n\n【競賽】'+name+'\n【官方網址】'+url+'\n【目前取得的徵件資訊／簡章文字】\n'+(s||'尚未提供；請先搜尋主辦單位官方頁面及當屆簡章，未找到的資訊明確標記待確認。')+'\n\n【目前快篩】\n主分類：'+cat+'\n作品形式：'+fmt+'\n判斷：'+decision+'\n參賽可行性：'+feasibility+'\n排除原因／待決風險：'+exclusionReason+'\n重要日期線索：'+(dates(s).join('、')||'未確認，請查官方簡章')+'\n初審交件：'+checks['初審交件']+'\n決審交件：'+checks['決審交件']+'\n初審可行性：'+checks['初審交件可行性']+'\n決審負擔：'+checks['決審交件負擔']+'\n\n【請先做的事】\n1. 先查當年度官方簡章、附件與公告；逐項列出已確認、待確認及不符合，不得把未查到當作沒有，也不得自行假定 AI 可用或免費。\n2. 核對參賽資格、截止日期、費用、AI規定、評審方式、授權、初審／決審交件及所有實體製作／現場出席要求。若有多組別，逐組評估，不要把一組限制套用到全場。\n3. 清楚列出主要風險與時間／成本估算；有條件可參賽時，先詢問我是否願意承擔未決風險，不得代我做決定。\n4. '+workflow+'\n5. 依序協作：先給我可比較的方向與執行方案，待我選定後再進入製作；之後逐步協助修改、驗收及最終交件清單。不要代我報名、投稿或公開發布作品。';
+ const handoffPrompt='請接手協助我參加以下競賽，依序查核與執行，不要只給一般建議。\n\n【競賽】'+name+'\n【官方網址】'+url+'\n【目前取得的徵件資訊／簡章文字】\n'+(s||'尚未提供；請先搜尋主辦單位官方頁面及當屆簡章，未找到的資訊明確標記待確認。')+'\n\n【目前快篩】\n主分類：'+cat+'\n作品形式：'+fmt+'\n判斷：'+decision+'\n參賽可行性：'+feasibility+'\n排除原因／待決風險：'+exclusionReason+'\n重要日期線索：'+(dates(s).join('、')||'未確認，請查官方簡章')+'\n初審交件：'+checks['初審交件']+'\n決審交件：'+checks['決審交件']+'\n初審可行性：'+checks['初審交件可行性']+'\n決審負擔：'+checks['決審交件負擔']+'\n\n【請先做的事】\n1. 先查當年度官方簡章、附件與公告；逐項列出已確認、待確認及不符合，不得把未查到當作沒有，也不得自行假定 AI 可用或免費。\n2. 參賽者身分已知：我是成年參賽者、不是學生。不要再問我的年齡層、是否為學生或要選哪種身分；直接依此判斷資格。只核對簡章中其他尚未知且會影響資格的條件。\n3. 核對截止日期、費用、AI規定、評審方式、授權、初審／決審交件及所有實體製作／現場出席要求。若有多組別，逐組評估，不要把一組限制套用到全場。\n3. 清楚列出主要風險與時間／成本估算；有條件可參賽時，先詢問我是否願意承擔未決風險，不得代我做決定。\n4. '+workflow+'\n5. 依序協作：先給我可比較的方向與執行方案，待我選定後再進入製作；之後逐步協助修改、驗收及最終交件清單。不要代我報名、投稿或公開發布作品。';
  return {version:VERSION,category:cat,workFormat:fmt,decision,reasons,warnings,checks,detectedDates:dates(s),sourceType:o.sourceType||'簡章／官方來源待核對',feasibility,exclusionReason,groupAssessment:{multiGroup,conceptGroup:hasConcept,productGroup:hasProductGroup,prelimKnown:hasPrelimRequirements,finalHighEffort:hasFinalPrototype},handoffPrompt};
 }
 root.ContestScreenRules={VERSION,RE,category,format,aiPolicy,dates,assess};
