@@ -39,4 +39,18 @@ assert.match(unclear.checks['決審交件負擔'],/核實/);
 const visual=R.assess('創新設計競賽：產品設計組須製作實體模型；視覺傳達組提交海報與數位圖檔。');
 assert.notEqual(visual.decision,'跳過');
 assert.match(visual.checks['作品形式'],/視覺傳達/);
-console.log('Passed design-group/stage feasibility regression suite (42 assertions).');
+
+// Handoff prompt regression: includes contest identity, official link, staged risks and tailored next steps.
+const handoff=R.assess(example,{contestName:'2026-2027 環境關懷友善設計競賽',sourceUrl:'https://example.org/official-rules'});
+assert.match(handoff.handoffPrompt,/2026-2027 環境關懷友善設計競賽/);
+assert.match(handoff.handoffPrompt,/https:\/\/example\.org\/official-rules/);
+assert.match(handoff.handoffPrompt,/概念設計組/);
+assert.match(handoff.handoffPrompt,/A2/);
+assert.match(handoff.handoffPrompt,/模型／原型/);
+assert.match(handoff.handoffPrompt,/90–150 秒/);
+assert.match(handoff.handoffPrompt,/親赴現場簡報/);
+assert.match(handoff.handoffPrompt,/不得代我報名、投稿或公開發布作品/);
+assert.match(R.assess('AI插畫徵件').handoffPrompt,/提示詞、圖像生成、視覺驗收/);
+assert.match(R.assess('詩詞徵文').handoffPrompt,/共同構思多個方向/);
+
+console.log('Passed design-group/stage feasibility and handoff regression suite.');
