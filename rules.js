@@ -34,7 +34,7 @@ function category(s){
  if(/視覺傳達|平面設計|海報|插畫/i.test(s))return '視覺設計';
  if(/數位媒體/i.test(s))return '數位媒體設計';
  if(has(s,RE.design))return '設計／創意';
- return '其他／待確認';
+ return '設計／創意';
 }
 function format(s){
  if(has(s,RE.music))return 'AI音樂／歌曲';
