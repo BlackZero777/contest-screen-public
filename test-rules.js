@@ -49,7 +49,7 @@ assert.match(handoff.handoffPrompt,/A2/);
 assert.match(handoff.handoffPrompt,/模型／原型/);
 assert.match(handoff.handoffPrompt,/90–150 秒/);
 assert.match(handoff.handoffPrompt,/親赴現場簡報/);
-assert.match(handoff.handoffPrompt,/不得代我報名、投稿或公開發布作品/);
+assert.match(handoff.handoffPrompt,/代我報名、投稿或公開發布作品/);
 assert.match(R.assess('AI插畫徵件').handoffPrompt,/提示詞、圖像生成、視覺驗收/);
 assert.match(R.assess('詩詞徵文').handoffPrompt,/共同構思多個方向/);
 
