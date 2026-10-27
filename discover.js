@@ -16,7 +16,7 @@ function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;',
 function plain(s){return String(s||'').replace(/<[^>]*>/g,' ').replace(/&nbsp;/g,' ').replace(/&amp;/g,'&').replace(/\s+/g,' ').trim();}
 function date(s){if(!s)return '';const d=new Date(s);return Number.isNaN(+d)?String(s):d.toLocaleDateString('zh-TW',{year:'numeric',month:'2-digit',day:'2-digit'});}
 function allText(x){return [x.title,x.titile,x.category,x.showUnit,x.masterUnit,x.descriptionFilterHtml,x.comment,x.sourceWebName].flat().join(' ');}
-function relevance(x){const t=allText(x);return !TERMS.exclude.test(t)&&(TERMS.design.test(t)||TERMS.text.test(t)||TERMS.music.test(t)||/徵件|競賽|比賽|徵選|公開徵求|創作/i.test(t));}
+function relevance(x){const t=allText(x);if(TERMS.exclude.test(t))return false;if(x._kind==='網路搜尋線索'){const body=[x.title,x.descriptionFilterHtml].join(' ');const title=String(x.title||'');const topic=/設計|插畫|繪畫|美術|海報|漫畫|圖像|書法|攝影|動畫|影像|短影音|影片|視覺|藝術|創意|生成式|貼圖|平面|文學|文藝|詩|對聯|徵聯|標語|命名|徵稿|徵文|散文|小說|歌詞|文字|文案|劇本|寫作|音樂|歌曲|作曲|作詞|配樂|聲音|樂曲|AI|logo/i.test(body);const contest=/競賽|比賽|徵件|徵選|徵稿|徵文|投稿|創作大賽|獎項|參賽|作品募集|公開徵求/i.test(body);const noise=/維基百科|wikipedia|自由行|旅遊攻略|觀光資訊網|總統府|首頁|新聞首頁|天氣預報/i.test(title);return topic&&contest&&!noise;}return TERMS.design.test(t)||TERMS.text.test(t)||TERMS.music.test(t)||/徵件|競賽|比賽|徵選|公開徵求|創作/i.test(t);}
 function getTitle(x){return plain(x.title||x.titile||'未命名活動');}
 function getHost(x){return plain([].concat(x.masterUnit||[],x.showUnit||[],x.sourceWebName||[]).filter(Boolean).join('、'))||'資料未提供主辦單位';}
 function getLink(x){const candidate=[x.sourceWebPromote,x.webSales].find(u=>typeof u==='string'&&/^https?:\/\//i.test(u));return candidate||'';}
