@@ -96,6 +96,15 @@ async function fetchSearchQuery(query, index) {
   }).filter(Boolean);
   return items;
 }
+function isUsefulSearchClue(item) {
+  if (item._kind !== '網路搜尋線索') return RELEVANT.test(searchableText(item)) && !EXCLUDE.test(searchableText(item));
+  const titleAndDescription = [item.title, item.descriptionFilterHtml].join(' ');
+  const title = String(item.title || '');
+  const hasTopic = /設計|插畫|繪畫|美術|海報|漫畫|圖像|書法|攝影|動畫|影像|短影音|影片|視覺|藝術|創意|生成式|貼圖|平面|文學|文藝|詩|對聯|徵聯|標語|命名|徵稿|徵文|散文|小說|歌詞|文字|文案|劇本|寫作|音樂|歌曲|作曲|作詞|配樂|聲音|樂曲|AI|logo/i.test(titleAndDescription);
+  const hasContestSignal = /競賽|比賽|徵件|徵選|徵稿|徵文|投稿|創作大賽|獎項|參賽|作品募集|公開徵求/i.test(titleAndDescription);
+  const obviousNoise = /維基百科|wikipedia|自由行|旅遊攻略|觀光資訊網|總統府|首頁|新聞首頁|天氣預報/i.test(title);
+  return hasTopic && hasContestSignal && !obviousNoise && !EXCLUDE.test(titleAndDescription);
+}
 function dedupe(items) {
   const seen = new Set();
   return items.filter(item => {
@@ -115,7 +124,7 @@ if (!official.length) {
 const searches = await Promise.allSettled(SEARCH_QUERIES.map((query, index) => fetchSearchQuery(query, index)));
 const searchItems = searches.flatMap(outcome => outcome.status === 'fulfilled' ? outcome.value : []);
 const all = [...official, ...searchItems];
-const filtered = dedupe(all.filter(item => RELEVANT.test(searchableText(item)) && !EXCLUDE.test(searchableText(item))))
+const filtered = dedupe(all.filter(isUsefulSearchClue))
   .sort((a, b) => {
     const aSearch = a._kind === '網路搜尋線索' ? 1 : 0;
     const bSearch = b._kind === '網路搜尋線索' ? 1 : 0;
