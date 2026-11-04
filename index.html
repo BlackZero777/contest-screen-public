@@ -72,7 +72,7 @@
  .discovery-row-actions a,.discovery-row-actions button{font-size:12px}
 }
 
-</style></head><body>
+ .manual-search-sources:empty{display:none}.manual-search-sources .manual-search-list{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin-top:10px}.manual-search-sources .manual-search-list a{display:flex;flex-direction:column;gap:6px;padding:14px 15px;border:1px solid #ead9b6;border-radius:10px;background:#fffdf8;color:var(--ink);text-decoration:none}.manual-search-sources .manual-search-list small{font-size:10px;color:var(--muted)}@media(max-width:850px){.manual-search-sources .manual-search-list{grid-template-columns:1fr 1fr}}@media(max-width:650px){.manual-search-sources .manual-search-list{grid-template-columns:1fr}}</style></head><body>
 <div class="app"><aside class="side"><div class="logo">CS</div><strong>比賽快篩</strong><small>MY CONTEST WORKBENCH</small><nav class="nav"><button class="active" data-view="screen">⌕ 簡章快篩</button><button data-view="post">▤ 貼文快篩</button><button data-view="discover">↗ 找比賽線索</button><button data-view="rules">☷ 我的參賽規則</button><button data-view="records">▤ 我的競賽紀錄</button><button data-view="pending">◷ 待研究清單</button><button data-view="ready">✦ 準備參賽</button></nav><div class="private">● 參賽工作台 · V3</div></aside>
 <main class="main"><header class="top"><span>工作台 / <b id="crumb">簡章快篩</b></span><span class="pill">V3 · 參賽工作台</span></header>
 <section class="hero"><div><div class="eyebrow">CONTEST SCREENING</div><h1>找到值得投入的<br><em>創作比賽。</em></h1><p>先篩選規則，再決定要不要創作。依照你的能力、時間與參賽偏好，避免白忙一場。</p></div><div class="orbit"><span>01 篩選　→　02 核對　→　03 決定</span></div></section>
@@ -90,13 +90,13 @@
 </div>
 <div class="discovery-toolbar"><button class="btn" id="loadOpenData">嘗試即時更新公開資料 ↻</button><span class="discovery-note">這個測試分支已完成首次資料同步；每日自動更新需合併到 main 後才生效。按鈕也會嘗試即時讀取（瀏覽器可能受跨來源限制）。</span></div>
 <div id="openRawFeeds" class="discovery-links"></div>
-<div id="manualSearchSources" class="manual-search-sources"></div>
+
 <div id="discoveryStatus" class="discovery-status">顯示已同步的公開資料；也可嘗試即時更新。每筆比賽均可複製完整接續查核指令。</div>
 <div id="discoveryResults" class="discovery-results"><div class="empty">載入後會顯示候選活動、資料日期、可能的期限線索及官方查核入口。</div></div>
 </div>
 <div class="heading" style="margin-top:28px"><div><div class="eyebrow">SEARCH SHORTCUTS</div><h2>補充搜尋</h2><p>公開資料可能漏掉民間、學校或新發布的徵件；可再用搜尋引擎補查。</p></div></div>
 <div class="card"><div class="grid"><label class="field"><span>想找哪類比賽？</span><select id="discoverCategory"><option>AI 插畫 海報 漫畫 設計比賽</option><option>AI 圖轉動畫 單張圖片 動畫 競賽</option><option>AI 音樂 AI 歌曲 徵件比賽</option><option>命名 標語 短詩 對聯 徵件比賽</option><option>社會人士 全國 創作徵件比賽</option></select></label><label class="field"><span>加上關鍵字（選填）</span><input id="discoverExtra" placeholder="例如：2026、台灣、AI 生成"></label></div><div class="searches"><button data-search="google">Google 搜尋 ↗</button><button data-search="bing">Bing 搜尋 ↗</button><button data-search="facebook">搜尋 Facebook 貼文 ↗</button></div></div>
-<div class="sources"><a class="source" href="https://data.gov.tw/dataset/6008" target="_blank" rel="noopener noreferrer"><b>文化部競賽活動公開資料 ↗</b><small>涵蓋繪畫、歌唱等競賽型藝文資訊；每日更新。</small></a><a class="source" href="https://data.gov.tw/dataset/6007" target="_blank" rel="noopener noreferrer"><b>文化部公開徵選活動 ↗</b><small>涵蓋美展、創意大賞等公開徵選；每日更新。</small></a><a class="source" href="https://ed.arte.gov.tw/ch/content/m_compete.aspx" target="_blank" rel="noopener noreferrer"><b>臺灣藝術教育網比賽徵件 ↗</b><small>補充查找藝術教育相關活動與官方網站。</small></a></div><div class="heading" style="margin-top:28px"><div><div class="eyebrow">UPDATE HISTORY</div><h2>更新紀錄</h2><p>最近三次同步結果；未找到資料可依來源自行補查。</p></div></div><div class="card sync-history-card" id="discoverySyncHistory"><div class="empty">等待下一次同步。</div></div>
+<div id="manualSearchSources" class="manual-search-sources"></div><div class="heading" style="margin-top:28px"><div><div class="eyebrow">UPDATE HISTORY</div><h2>更新紀錄</h2><p>最近三次同步結果；未找到資料可依來源自行補查。</p></div></div><div class="card sync-history-card" id="discoverySyncHistory"><div class="empty">等待下一次同步。</div></div>
 </section>
 <section class="view" id="view-rules"><div class="heading"><div><div class="eyebrow">04 / MY FILTER</div><h2>我的參賽規則</h2><p>先排除不符合能力、成本與評選偏好的活動。</p></div><span class="step">MY RULES</span></div><div class="rules"><article class="rule"><b>✳ 優先考慮</b><ul><li>允許 AI 生成主要畫面的純圖像創作。</li><li>AI 單張主圖轉短動畫。</li><li>AI 音樂／歌曲（須核對工具、授權與費用）。</li><li>命名、短標語、小詩、對聯等低投入文字。</li><li>評審主導，人氣獎不影響主獎。</li></ul></article><article class="rule"><b>× 直接排除或高度警戒</b><ul><li>限定手繪、禁止數位工具。</li><li>必須製作實品、模型或實體產品。</li><li>要求產品功能、結構、材料工法、打樣或量產成本。</li><li>主獎人氣比重達 50%，或先靠票數入圍。</li><li>完整影片、多鏡頭、真人拍攝另行評估。</li></ul></article><article class="rule"><b>? 必須查清楚</b><ul><li>AI 允許主畫面、僅能輔助或完全禁止。</li><li>未載明費用不等於免費。</li><li>身分、年齡、居住地、組別及團隊資格。</li><li>附件、檔案格式、交件數量與截止時間。</li><li>人氣投票是否影響主獎或入圍。</li></ul></article></div><div class="notice"><b>重要原則</b><p>主辦方自行印製圖像不等於參賽者須製作實品。FB 廣告可以作線索，最後以當屆官方簡章及附件為準。</p></div></section>
 <section class="view" id="view-records">
