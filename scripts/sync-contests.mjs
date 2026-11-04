@@ -92,14 +92,14 @@ function dedupe(items) {
 function cleanTitle(value) {
   return decodeHtml(value).toLowerCase()
     .replace(/[（(](?:歡迎參加|歡迎報名|截止[^）)]*)[）)]/g, '')
-    .replace(/[，,、]\\s*(?:20\\d{2}[年./-]\\s*)?\\d{1,2}[月./-]\\s*\\d{1,2}日?截止.*$/i, '')
-    .replace(/[，,、]\\s*(?:歡迎參加|歡迎報名).*$/i, '')
-    .replace(/[^\\p{L}\\p{N}]/gu, '');
+    .replace(/[，,、]\s*(?:20\d{2}[年./-]\s*)?\d{1,2}[月./-]\s*\d{1,2}日?截止.*$/i, '')
+    .replace(/[，,、]\s*(?:歡迎參加|歡迎報名).*$/i, '')
+    .replace(/[^\p{L}\p{N}]/gu, '');
 }
 function contestKey(item) {
   const title = cleanTitle(item.title || item.titile || '');
-  const hasEditionYear = /20\\d{2}/.test(title);
-  const dateYear = String(item.startDate || item.endDate || '').match(/20\\d{2}/)?.[0] || '';
+  const hasEditionYear = /20\d{2}/.test(title);
+  const dateYear = String(item.startDate || item.endDate || '').match(/20\d{2}/)?.[0] || '';
   return title + (hasEditionYear ? '' : '|year:' + dateYear);
 }
 function announcementSnapshot(item, observedAt) {
@@ -174,7 +174,7 @@ const filtered = dedupe(all.filter(isUsefulSearchClue))
   });
 if (!filtered.length) throw new Error('公開來源讀取成功，但沒有符合篩選條件的活動；為避免清空現有資料，停止更新。');
 let previous=null;
-try{const oldText=await readFile(OUTPUT,'utf8');const oldMatch=oldText.match(/window\\.ContestDiscoveryFeed\\s*=\\s*([\\s\\S]*);\\s*$/);if(!oldMatch)throw new Error('舊版資料格式無法辨識，為避免遺失更新紀錄，停止覆寫。');previous=JSON.parse(oldMatch[1]);}catch(error){if(error.code!=='ENOENT')throw error;}
+try{const oldText=await readFile(OUTPUT,'utf8');const oldMatch=oldText.match(/window\.ContestDiscoveryFeed\s*=\s*([\s\S]*);\s*$/);if(!oldMatch)throw new Error('舊版資料格式無法辨識，為避免遺失更新紀錄，停止覆寫。');previous=JSON.parse(oldMatch[1]);}catch(error){if(error.code!=='ENOENT')throw error;}
 const observedAt=new Date().toISOString();
 const mergedRecords=mergeContestRecords(filtered,previous,observedAt)
   .sort((a,b)=>Number(b.isNew)-Number(a.isNew)||Number(b.announcementUpdated)-Number(a.announcementUpdated)||String(b.editModifyDate||b.startDate||'').localeCompare(String(a.editModifyDate||a.startDate||'')))
