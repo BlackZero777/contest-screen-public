@@ -82,9 +82,10 @@ async function copyText(text){
  const area=document.createElement('textarea');area.value=text;area.setAttribute('readonly','');area.style.position='fixed';area.style.opacity='0';document.body.appendChild(area);area.select();
  const ok=document.execCommand('copy');area.remove();if(!ok)throw new Error('瀏覽器未允許複製，請改用手動選取文字。');
 }
+function renderSyncHistory(){const box=$('discoverySyncHistory');if(!box)return;const history=feed.syncHistory||[];if(!history.length){box.innerHTML='<div class="empty">尚無更新紀錄；下一次同步後開始累積。</div>';return;}const fmt=v=>{const x=new Date(v);return Number.isNaN(+x)?'時間未提供':x.toLocaleString('zh-TW',{hour12:false});};box.innerHTML=history.slice(0,3).map(e=>{const sites=(e.sites||[]).map(x=>'<div class="sync-history-source"><span>'+esc(x.name)+'</span><b class="'+(x.status!=='success'?'sync-failed':x.kept?'sync-found':'sync-empty')+'">'+(x.status!=='success'?'讀取失敗':x.kept?'找到 '+x.kept+' 筆':'本次未找到資料')+'</b>'+(x.error?'<small>'+esc(x.error)+'</small>':'')+'</div>').join('');const official=(e.official||[]).map(x=>'<div class="sync-history-source"><span>'+esc(x.name)+'</span><b class="'+(x.status==='success'?'sync-found':'sync-failed')+'">'+(x.status==='success'?'成功 '+x.fetched+' 筆':'讀取失敗')+'</b></div>').join('');return '<article class="sync-history-entry"><h3>'+fmt(e.generatedAt)+'</h3><p>新增 '+Number(e.added||0)+' 筆 ・ 保留 '+Number(e.total||0)+' 筆候選線索</p><div class="sync-history-grid">'+sites+official+'</div></article>';}).join('');}
 function render(){
  const box=$('discoveryResults');if(!box)return;const list=visibleRecords();const status=$('discoveryStatus');
- if(status)status.textContent='資料更新時間：'+(loadedAt?loadedAt.toLocaleString('zh-TW'):'尚未載入')+'｜顯示 '+list.length+' 筆候選線索';
+ if(status)status.textContent='資料更新時間：'+(loadedAt?loadedAt.toLocaleString('zh-TW'):'尚未載入')+'｜顯示 '+list.length+' 筆候選線索';renderSyncHistory();
  if(!records.length){box.innerHTML='<div class="empty">尚未載入資料。按「嘗試即時更新公開資料」或使用下方搜尋捷徑。</div>';return;}
  if(!list.length){box.innerHTML='<div class="empty">目前篩選條件沒有找到候選。可換分類或清除關鍵字；也可使用下方搜尋捷徑。</div>';return;}
  const rows=list.slice(0,50).map(x=>{
