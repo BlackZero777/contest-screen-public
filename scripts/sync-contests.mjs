@@ -97,7 +97,7 @@ async function fetchTargetSite(site){
  const kept=dedupe([...enriched,...candidates.filter(x=>!shortlist.some(y=>y.sourceWebPromote===x.sourceWebPromote))].filter(isUsefulSearchClue));
  return {fetched:candidates.length,items:kept,entryPages:successful.length,detailPages:details.filter(x=>x.status==='fulfilled').length};
 }
-const STUDENT_ONLY = /(?:僅限|只限|限於|限)\s*(?:全國)?(?:大專院校|大學|研究所|高中職|高中|高職|專科)?\s*(?:在學)?學生(?:參賽|報名|參加)?|學生專屬(?:競賽|比賽|徵件|組)?|限學生(?:參加|報名|參賽)?|在學學生限定|學生限定(?:競賽|比賽|徵件)?/i;
+const STUDENT_ONLY = /(?:僅限|只限|限於|限)\s*(?:全國)?(?:大專院校|大學|研究所|高中職|高中|高職|專科)?\s*(?:在學)?學生(?:參賽|報名|參加)?|學生專屬(?:競賽|比賽|徵件|組)?|限學生(?:參加|報名|參賽)?|在學學生限定|學生限定(?:競賽|比賽|徵件)?|(?:全國|全球)?(?:華文)?學生[^。；;]{0,12}(?:比賽|競賽|大賽|文學獎|創作獎)/i;
 function isUsefulSearchClue(item) {
   const contentText = [item.title,item.titile,item.category,item.descriptionFilterHtml,item.comment].flat().join(' ');
   if (STUDENT_ONLY.test(contentText)) return false;
