@@ -5,6 +5,7 @@ const API=[
  {name:'文化部公開徵選',url:'https://cloud.culture.tw/frontsite/trans/SearchShowAction.do?category=14&method=doFindTypeJ',kind:'徵選'}
 ];
 const $=id=>document.getElementById(id);
+const STUDENT_ONLY=/(?:僅限|只限|限於|限)\\s*(?:全國)?(?:大專院校|大學|研究所|高中職|高中|高職|專科)?\\s*(?:在學)?學生(?:參賽|報名|參加)?|學生專屬(?:競賽|比賽|徵件|組)?|限學生(?:參加|報名|參賽)?|在學學生限定|學生限定(?:競賽|比賽|徵件)?/i;
 const TERMS={
  design:/設計|插畫|繪畫|美術|海報|漫畫|圖像|書法|攝影|動畫|影像|短影音|影片|視覺|藝術|創意|ai|生成式|貼圖|logo|平面/i,
  text:/文學|文藝|詩|對聯|徵聯|標語|命名|徵稿|徵文|散文|小說|歌詞|文字|文案|劇本|寫作/i,
@@ -16,7 +17,7 @@ function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;',
 function plain(s){return String(s||'').replace(/<[^>]*>/g,' ').replace(/&nbsp;/g,' ').replace(/&amp;/g,'&').replace(/\s+/g,' ').trim();}
 function date(s){if(!s)return '';const d=new Date(s);return Number.isNaN(+d)?String(s):d.toLocaleDateString('zh-TW',{year:'numeric',month:'2-digit',day:'2-digit'});}
 function allText(x){return [x.title,x.titile,x.category,x.showUnit,x.masterUnit,x.descriptionFilterHtml,x.comment,x.sourceWebName].flat().join(' ');}
-function relevance(x){const t=allText(x);return !TERMS.exclude.test(t)&&(TERMS.design.test(t)||TERMS.text.test(t)||TERMS.music.test(t)||/徵件|競賽|比賽|徵選|公開徵求|創作/i.test(t));}
+function relevance(x){const t=allText(x);return !STUDENT_ONLY.test(t)&&!TERMS.exclude.test(t)&&(TERMS.design.test(t)||TERMS.text.test(t)||TERMS.music.test(t)||/徵件|競賽|比賽|徵選|公開徵求|創作/i.test(t));}
 function getTitle(x){return plain(x.title||x.titile||'未命名活動');}
 function getHost(x){return plain([].concat(x.masterUnit||[],x.showUnit||[],x.sourceWebName||[]).filter(Boolean).join('、'))||'資料未提供主辦單位';}
 function getLink(x){const candidate=[x.sourceWebPromote,x.webSales].find(u=>typeof u==='string'&&/^https?:\/\//i.test(u));return candidate||'';}
