@@ -26,12 +26,15 @@ function load(){
 }
 function persist(){
  if(!stateReady)throw new Error('資料尚未安全載入，禁止寫入以免覆蓋原紀錄。');
- const next=JSON.stringify(records);
+ let previous=null,previousRecords=[];
  try{
-  const previous=localStorage.getItem(KEY);
+  previous=localStorage.getItem(KEY);
   if(previous!==null){
-   const parsed=JSON.parse(previous);
-   if(!validRecordArray(parsed))throw new Error('現有資料格式異常，停止覆寫');
+   previousRecords=JSON.parse(previous);
+   if(!validRecordArray(previousRecords))throw new Error('現有資料格式異常，停止覆寫');
+  }
+  const next=JSON.stringify(records);
+  if(previous!==null){
    const backups=JSON.parse(localStorage.getItem(KEY+'_snapshots')||'[]');
    if(!Array.isArray(backups))throw new Error('本機備份快照格式異常，停止覆寫');
    backups.unshift({savedAt:new Date().toISOString(),raw:previous});
@@ -44,7 +47,13 @@ function persist(){
   $('recordStorageStatus').textContent='已保存 '+records.length+' 筆至目前瀏覽器，並保留最近 5 次本機快照 · '+new Date().toLocaleString('zh-TW');
   return true;
  }catch(e){
-  $('recordStorageStatus').textContent='保存失敗，已停止後續操作。請勿重新整理或匯入空資料。原因：'+(e.message||e);
+  try{
+   if(previous!==null){localStorage.setItem(KEY,previous);records=previousRecords;}
+   else if(typeof localStorage.removeItem==='function'){localStorage.removeItem(KEY);records=[];}
+  }catch(rollbackError){
+   stateReady=false;storageError='保存及回復均失敗：'+(rollbackError.message||rollbackError);
+  }
+  $('recordStorageStatus').textContent='保存失敗，已嘗試回復寫入前資料；請勿關閉頁面，並立即匯出其他可用備份。原因：'+(e.message||e);
   throw e;
  }
 }
