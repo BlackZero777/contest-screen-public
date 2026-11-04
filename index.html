@@ -46,6 +46,32 @@
 .discovery-results{display:block;overflow-x:auto;margin-top:12px}.discovery-list-wrap{width:100%;overflow-x:auto;border:1px solid var(--line);border-radius:10px;background:#fff}.discovery-list{width:100%;border-collapse:collapse;min-width:850px;font-size:11px}.discovery-list th{background:#f5f8f5;color:#748279;text-align:left;font-weight:600;padding:13px 12px;white-space:nowrap}.discovery-list td{padding:13px 12px;border-top:1px solid #e8eee9;vertical-align:middle;color:var(--ink)}.discovery-name{min-width:270px;max-width:430px}.discovery-name strong{display:block;font-size:12px;line-height:1.5}.discovery-name small{display:block;color:var(--muted);margin-top:3px}.discovery-name p{font-size:10px;line-height:1.6;color:#738078;margin:5px 0 0}.discovery-row-actions{min-width:225px}.discovery-row-actions a,.discovery-row-actions button{display:inline-block;margin:2px 5px 2px 0;font-size:10px}.discovery-row-actions a{color:#397457;text-decoration:none}.discovery-row-actions button{padding:7px 9px!important}.record-link-state{display:inline-block;font-size:10px;padding:5px 9px;border-radius:12px;white-space:nowrap;background:#f1f3f2;color:#758078}.record-link-state.is-saved{background:#eaf2ff;color:#315ed0;font-weight:700}.record-link-state.is-new{background:#f5f6f4;color:#7c8981}
 .record-link-state{display:inline-block;font-size:10px;padding:4px 9px;border-radius:12px;margin-right:6px;background:#f1f3f2;color:#758078}.record-link-state.is-saved{background:#eaf2ff;color:#315ed0;font-weight:700}.record-link-state.is-new{background:#f5f6f4;color:#7c8981}
 .record-link-state{display:inline-block;font-size:10px;padding:4px 9px;border-radius:12px;margin-right:6px;background:#f1f3f2;color:#758078}.record-link-state.is-saved{background:#eaf2ff;color:#315ed0;font-weight:700}.record-link-state.is-new{background:#f5f6f4;color:#7c8981}.sync-history-columns{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}.sync-history-column{min-width:0;border:1px solid var(--line);border-radius:12px;padding:14px;background:var(--surface,transparent)}.sync-history-date{font-size:13px;font-weight:700;margin-bottom:10px}.sync-history-metrics{display:flex;flex-wrap:wrap;gap:6px 12px;align-items:baseline}.sync-history-metrics b{font-size:15px}.sync-history-metrics span,.sync-history-summary{font-size:12px;color:var(--muted)}.sync-history-summary{margin:8px 0 12px;min-height:34px}.sync-history-column details{border-top:1px solid var(--line);padding-top:9px}.sync-history-column details summary{cursor:pointer;font-size:12px;font-weight:600}.sync-history-details{display:grid;gap:7px;padding-top:10px}.sync-history-source{display:flex;justify-content:space-between;gap:8px;align-items:baseline;font-size:12px}.sync-history-source small{display:block;color:var(--muted);width:100%;overflow-wrap:anywhere}.sync-found{color:#16804a}.sync-empty{color:#b7791f}.sync-failed{color:#b42318}.sync-history-source b{font-weight:600;text-align:right;white-space:nowrap}@media(max-width:760px){.sync-history-columns{grid-template-columns:1fr}.sync-history-summary{min-height:0}}
+
+/* 2026-11-04 readability pass: larger list typography */
+.discovery-list{font-size:13px}
+.discovery-list th{font-size:13px;padding:15px 14px}
+.discovery-list td{padding:15px 14px;line-height:1.7}
+.discovery-name strong{font-size:15px;line-height:1.6}
+.discovery-name small{font-size:12px;line-height:1.7}
+.discovery-name p{font-size:12px;line-height:1.8}
+.discovery-row-actions a,.discovery-row-actions button{font-size:12px;line-height:1.6}
+.record-link-state{font-size:12px;padding:6px 10px}
+.record-list{gap:13px}
+.record-item{padding:17px}
+.record-item h3{font-size:17px;line-height:1.55}
+.record-meta{font-size:12px;line-height:1.7}
+.record-badge{font-size:11px;padding:5px 8px}
+.record-item p{font-size:13px;line-height:1.8}
+.record-item a,.record-row-action{font-size:12px}
+.record-item-actions button{font-size:12px;padding:9px 11px}
+@media(max-width:650px){
+ .discovery-list{font-size:13px}
+ .discovery-list th,.discovery-list td{padding:14px 12px}
+ .discovery-name strong{font-size:15px}
+ .discovery-name small,.discovery-name p{font-size:12px}
+ .discovery-row-actions a,.discovery-row-actions button{font-size:12px}
+}
+
 </style></head><body>
 <div class="app"><aside class="side"><div class="logo">CS</div><strong>比賽快篩</strong><small>MY CONTEST WORKBENCH</small><nav class="nav"><button class="active" data-view="screen">⌕ 簡章快篩</button><button data-view="post">▤ 貼文快篩</button><button data-view="discover">↗ 找比賽線索</button><button data-view="rules">☷ 我的參賽規則</button><button data-view="records">▤ 我的競賽紀錄</button><button data-view="pending">◷ 待研究清單</button><button data-view="ready">✦ 準備參賽</button></nav><div class="private">● 參賽工作台 · V3</div></aside>
 <main class="main"><header class="top"><span>工作台 / <b id="crumb">簡章快篩</b></span><span class="pill">V3 · 參賽工作台</span></header>
