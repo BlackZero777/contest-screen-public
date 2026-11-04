@@ -63,7 +63,7 @@ async function fetchTargetSite(site){
  const res=await fetch(site.url,{headers:{Accept:'text/html,application/xhtml+xml','User-Agent':'Mozilla/5.0 ContestScreenWorkbench/3.0'},signal:AbortSignal.timeout(25000)});
  if(!res.ok)throw new Error('HTTP '+res.status);
  const html=await res.text();
- const anchors=[...html.matchAll(/<a\\b([^>]*)href=["']([^"'#]+)["']([^>]*)>([\s\S]*?)<\/a>/gi)];
+ const anchors=[...html.matchAll(/<a\b([^>]*)href=["']([^"'#]+)["']([^>]*)>([\s\S]*?)<\/a>/gi)];
  const items=anchors.map(m=>{const title=decodeHtml(m[4]);if(title.length<4)return null;let url;try{url=new URL(m[2],site.url).href;}catch{return null;}return normalizeItem({UID:'site:'+url,title,sourceWebName:site.name,sourceWebPromote:url,comment:'直接從指定網站擷取的線索，仍須回原始公告查核。'},'指定網站線索');}).filter(Boolean);
  const kept=dedupe(items.filter(isUsefulSearchClue));
  return {fetched:items.length,items:kept};
