@@ -191,8 +191,19 @@ if (!official.length) {
   const errors = outcomes.map((outcome, i) => outcome.status === 'rejected' ? FEEDS[i].name + ': ' + String(outcome.reason) : '').filter(Boolean);
   throw new Error('所有官方公開資料來源都失敗，為避免覆蓋舊快取而停止更新。' + errors.join('；'));
 }
-const siteOutcomes=await Promise.allSettled(TARGET_SITES.map(fetchTargetSite));
-const siteResults=siteOutcomes.map((o,i)=>({name:TARGET_SITES[i].name,url:TARGET_SITES[i].url,status:o.status==='fulfilled'?(o.value.fetched?'success':'empty'):'failed',fetched:o.status==='fulfilled'?o.value.fetched:0,kept:o.status==='fulfilled'?o.value.items.length:0,entryPages:o.status==='fulfilled'?(o.value.entryPages||1):0,detailPages:o.status==='fulfilled'?(o.value.detailPages||0):0,error:o.status==='rejected'?String(o.reason?.message||o.reason):''}));
+const pausedSources=new Set((previous?.manualSearchSources||[]).map(x=>x.url));
+const siteOutcomes=await Promise.allSettled(TARGET_SITES.map(site=>pausedSources.has(site.url)?Promise.resolve({manual:true,fetched:0,items:[],entryPages:0,detailPages:0}):fetchTargetSite(site)));
+const rawSiteResults=siteOutcomes.map((o,i)=>({name:TARGET_SITES[i].name,url:TARGET_SITES[i].url,status:o.status==='fulfilled'?(o.value.manual?'manual':o.value.fetched?'success':'empty'):'failed',fetched:o.status==='fulfilled'?o.value.fetched:0,kept:o.status==='fulfilled'?o.value.items.length:0,entryPages:o.status==='fulfilled'?(o.value.entryPages||0):0,detailPages:o.status==='fulfilled'?(o.value.detailPages||0):0,error:o.status==='rejected'?String(o.reason?.message||o.reason):''}));
+const sourceHealth={...(previous?.sourceHealth||{})};
+for(const result of rawSiteResults){
+ const oldHealth=sourceHealth[result.url]||{consecutiveNoData:0};
+ if(result.status==='manual')continue;
+ const noData=result.status==='failed'||result.kept===0;
+ sourceHealth[result.url]={name:result.name,url:result.url,lastStatus:result.status,consecutiveNoData:noData?Number(oldHealth.consecutiveNoData||0)+1:0,lastCheckedAt:observedAt};
+}
+const manualSearchSources=TARGET_SITES.map(site=>sourceHealth[site.url]).filter(x=>Number(x?.consecutiveNoData||0)>=3).map(x=>({...x,reason:'連續三次同步未取得可用競賽線索，已暫停自動抓取，請手動開啟來源檢查。'}));
+const manualUrls=new Set(manualSearchSources.map(x=>x.url));
+const siteResults=rawSiteResults.map(x=>manualUrls.has(x.url)?{...x,status:'manual',error:x.error||'已暫停自動抓取，請手動搜尋'}:x);
 const siteItems=siteOutcomes.flatMap(o=>o.status==='fulfilled'?o.value.items:[]);
 const all = [...official, ...siteItems];
 const filtered = dedupe(all.filter(isUsefulSearchClue))
