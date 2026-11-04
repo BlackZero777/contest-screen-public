@@ -84,23 +84,22 @@ async function copyText(text){
 }
 function renderSyncHistory(){
  const box=$('discoverySyncHistory');if(!box)return;
- const history=feed.syncHistory||[];
+ const history=(feed.syncHistory||[]).slice(0,3);
  if(!history.length){box.innerHTML='<div class="empty">尚無更新紀錄；下一次同步後開始累積。</div>';return;}
  const fmt=v=>{const x=new Date(v);return Number.isNaN(+x)?'時間未提供':x.toLocaleString('zh-TW',{hour12:false});};
- box.innerHTML=history.slice(0,3).map((e,index)=>{
-  const all=[...(e.sites||[]),...(e.official||[])];
-  const ok=all.filter(x=>x.status==='success').length;
-  const failed=all.filter(x=>x.status!=='success').length;
-  const empty=(e.sites||[]).filter(x=>x.status==='success'&&Number(x.kept||0)===0).length;
-  const details=all.map(x=>{
-   const isSite=(e.sites||[]).includes(x);
-   const found=isSite?Number(x.kept||0):Number(x.fetched||0);
-   const label=x.status!=='success'?'讀取失敗':isSite?(found?'找到 '+found+' 筆':'本次未找到'):'成功 '+found+' 筆';
-   return '<div class="sync-history-source"><span>'+esc(x.name)+'</span><b class="'+(x.status!=='success'?'sync-failed':found?'sync-found':'sync-empty')+'">'+label+'</b>'+(x.error?'<small>'+esc(x.error)+'</small>':'')+'</div>';
+ const cards=history.map((e,index)=>{
+  const sources=[...(e.sites||[]),...(e.official||[])];
+  const success=sources.filter(x=>x.status==='success').length;
+  const failed=sources.filter(x=>x.status!=='success').length;
+  const noClue=(e.sites||[]).filter(x=>x.status==='success'&&!Number(x.kept||0)).length;
+  const rows=sources.map(x=>{
+   const isSite=(e.sites||[]).includes(x),n=isSite?Number(x.kept||0):Number(x.fetched||0);
+   const label=x.status!=='success'?'讀取失敗':isSite?(n?'找到 '+n+' 筆':'本次未找到'):'成功 '+n+' 筆';
+   return '<div class="sync-history-source"><span>'+esc(x.name)+'</span><b class="'+(x.status!=='success'?'sync-failed':n?'sync-found':'sync-empty')+'">'+label+'</b>'+(x.error?'<small>'+esc(x.error)+'</small>':'')+'</div>';
   }).join('');
-  const summary='新增 '+Number(e.added||0)+' 筆 ・ '+ok+'/'+all.length+' 個來源成功'+(failed?' ・ '+failed+' 個讀取失敗':'')+(empty?' ・ '+empty+' 個來源無新線索':'');
-  return '<details class="sync-history-entry"'+(index===0?' open':'')+'><summary><span class="sync-history-date">'+fmt(e.generatedAt)+'</span><span class="sync-history-summary">'+summary+'</span><span class="sync-history-total">共 '+Number(e.total||0)+' 筆</span></summary><div class="sync-history-details">'+details+'</div></details>';
+  return '<article class="sync-history-column"><div class="sync-history-date">'+fmt(e.generatedAt)+'</div><div class="sync-history-metrics"><b>新增 '+Number(e.added||0)+' 筆</b><span>候選共 '+Number(e.total||0)+' 筆</span></div><div class="sync-history-summary">'+success+'/'+sources.length+' 個來源成功'+(failed?' · '+failed+' 個讀取失敗':'')+(noClue?' · '+noClue+' 個來源無新線索':'')+'</div><details><summary>查看來源明細</summary><div class="sync-history-details">'+rows+'</div></details></article>';
  }).join('');
+ box.innerHTML='<div class="sync-history-columns">'+cards+'</div>';
 }
 function render(){
  const box=$('discoveryResults');if(!box)return;const list=visibleRecords();const status=$('discoveryStatus');
