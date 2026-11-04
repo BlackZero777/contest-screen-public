@@ -68,7 +68,9 @@ async function fetchTargetSite(site){
  const kept=dedupe(items.filter(isUsefulSearchClue));
  return {fetched:items.length,items:kept};
 }
+const STUDENT_ONLY = /(?:僅限|只限|限於|限)\s*(?:全國)?(?:大專院校|大學|研究所|高中職|高中|高職|專科)?\s*(?:在學)?學生(?:參賽|報名|參加)?|學生專屬(?:競賽|比賽|徵件|組)?|限學生(?:參加|報名|參賽)?|在學學生限定|學生限定(?:競賽|比賽|徵件)?/i;
 function isUsefulSearchClue(item) {
+  if (STUDENT_ONLY.test(searchableText(item))) return false;
   if (item._kind !== '網路搜尋線索') return RELEVANT.test(searchableText(item)) && !EXCLUDE.test(searchableText(item));
   const titleAndDescription = [item.title, item.descriptionFilterHtml].join(' ');
   const title = String(item.title || '');
