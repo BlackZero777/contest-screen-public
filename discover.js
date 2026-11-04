@@ -82,7 +82,26 @@ async function copyText(text){
  const area=document.createElement('textarea');area.value=text;area.setAttribute('readonly','');area.style.position='fixed';area.style.opacity='0';document.body.appendChild(area);area.select();
  const ok=document.execCommand('copy');area.remove();if(!ok)throw new Error('瀏覽器未允許複製，請改用手動選取文字。');
 }
-function renderSyncHistory(){const box=$('discoverySyncHistory');if(!box)return;const history=feed.syncHistory||[];if(!history.length){box.innerHTML='<div class="empty">尚無更新紀錄；下一次同步後開始累積。</div>';return;}const fmt=v=>{const x=new Date(v);return Number.isNaN(+x)?'時間未提供':x.toLocaleString('zh-TW',{hour12:false});};box.innerHTML=history.slice(0,3).map(e=>{const sites=(e.sites||[]).map(x=>'<div class="sync-history-source"><span>'+esc(x.name)+'</span><b class="'+(x.status!=='success'?'sync-failed':x.kept?'sync-found':'sync-empty')+'">'+(x.status!=='success'?'讀取失敗':x.kept?'找到 '+x.kept+' 筆':'本次未找到資料')+'</b>'+(x.error?'<small>'+esc(x.error)+'</small>':'')+'</div>').join('');const official=(e.official||[]).map(x=>'<div class="sync-history-source"><span>'+esc(x.name)+'</span><b class="'+(x.status==='success'?'sync-found':'sync-failed')+'">'+(x.status==='success'?'成功 '+x.fetched+' 筆':'讀取失敗')+'</b></div>').join('');return '<article class="sync-history-entry"><h3>'+fmt(e.generatedAt)+'</h3><p>新增 '+Number(e.added||0)+' 筆 ・ 保留 '+Number(e.total||0)+' 筆候選線索</p><div class="sync-history-grid">'+sites+official+'</div></article>';}).join('');}
+function renderSyncHistory(){
+ const box=$('discoverySyncHistory');if(!box)return;
+ const history=feed.syncHistory||[];
+ if(!history.length){box.innerHTML='<div class="empty">尚無更新紀錄；下一次同步後開始累積。</div>';return;}
+ const fmt=v=>{const x=new Date(v);return Number.isNaN(+x)?'時間未提供':x.toLocaleString('zh-TW',{hour12:false});};
+ box.innerHTML=history.slice(0,3).map((e,index)=>{
+  const all=[...(e.sites||[]),...(e.official||[])];
+  const ok=all.filter(x=>x.status==='success').length;
+  const failed=all.filter(x=>x.status!=='success').length;
+  const empty=(e.sites||[]).filter(x=>x.status==='success'&&Number(x.kept||0)===0).length;
+  const details=all.map(x=>{
+   const isSite=(e.sites||[]).includes(x);
+   const found=isSite?Number(x.kept||0):Number(x.fetched||0);
+   const label=x.status!=='success'?'讀取失敗':isSite?(found?'找到 '+found+' 筆':'本次未找到'):'成功 '+found+' 筆';
+   return '<div class="sync-history-source"><span>'+esc(x.name)+'</span><b class="'+(x.status!=='success'?'sync-failed':found?'sync-found':'sync-empty')+'">'+label+'</b>'+(x.error?'<small>'+esc(x.error)+'</small>':'')+'</div>';
+  }).join('');
+  const summary='新增 '+Number(e.added||0)+' 筆 ・ '+ok+'/'+all.length+' 個來源成功'+(failed?' ・ '+failed+' 個讀取失敗':'')+(empty?' ・ '+empty+' 個來源無新線索':'');
+  return '<details class="sync-history-entry"'+(index===0?' open':'')+'><summary><span class="sync-history-date">'+fmt(e.generatedAt)+'</span><span class="sync-history-summary">'+summary+'</span><span class="sync-history-total">共 '+Number(e.total||0)+' 筆</span></summary><div class="sync-history-details">'+details+'</div></details>';
+ }).join('');
+}
 function render(){
  const box=$('discoveryResults');if(!box)return;const list=visibleRecords();const status=$('discoveryStatus');
  if(status)status.textContent='資料更新時間：'+(loadedAt?loadedAt.toLocaleString('zh-TW'):'尚未載入')+'｜顯示 '+list.length+' 筆候選線索';renderSyncHistory();
