@@ -192,6 +192,9 @@ if (!official.length) {
   throw new Error('所有官方公開資料來源都失敗，為避免覆蓋舊快取而停止更新。' + errors.join('；'));
 }
 const pausedSources=new Set((previous?.manualSearchSources||[]).map(x=>x.url));
+let previous=null;
+try{const oldText=await readFile(OUTPUT,'utf8');const marker='window.ContestDiscoveryFeed = ';const begin=oldText.indexOf(marker);const finish=oldText.lastIndexOf(';');if(begin<0||finish<=begin)throw new Error('舊版資料格式無法辨識，為避免遺失更新紀錄，停止覆寫。');previous=JSON.parse(oldText.slice(begin+marker.length,finish));}catch(error){if(error.code!=='ENOENT')throw error;}
+const observedAt=new Date().toISOString();
 const siteOutcomes=await Promise.allSettled(TARGET_SITES.map(site=>pausedSources.has(site.url)?Promise.resolve({manual:true,fetched:0,items:[],entryPages:0,detailPages:0}):fetchTargetSite(site)));
 const rawSiteResults=siteOutcomes.map((o,i)=>({name:TARGET_SITES[i].name,url:TARGET_SITES[i].url,status:o.status==='fulfilled'?(o.value.manual?'manual':o.value.fetched?'success':'empty'):'failed',fetched:o.status==='fulfilled'?o.value.fetched:0,kept:o.status==='fulfilled'?o.value.items.length:0,entryPages:o.status==='fulfilled'?(o.value.entryPages||0):0,detailPages:o.status==='fulfilled'?(o.value.detailPages||0):0,error:o.status==='rejected'?String(o.reason?.message||o.reason):''}));
 const sourceHealth={...(previous?.sourceHealth||{})};
@@ -213,9 +216,8 @@ const filtered = dedupe(all.filter(isUsefulSearchClue))
     return aSearch - bSearch || String(b.editModifyDate || b.startDate || '').localeCompare(String(a.editModifyDate || a.startDate || ''));
   });
 if (!filtered.length) throw new Error('公開來源讀取成功，但沒有符合篩選條件的活動；為避免清空現有資料，停止更新。');
-let previous=null;
-try{const oldText=await readFile(OUTPUT,'utf8');const marker='window.ContestDiscoveryFeed = ';const begin=oldText.indexOf(marker);const finish=oldText.lastIndexOf(';');if(begin<0||finish<=begin)throw new Error('舊版資料格式無法辨識，為避免遺失更新紀錄，停止覆寫。');previous=JSON.parse(oldText.slice(begin+marker.length,finish));}catch(error){if(error.code!=='ENOENT')throw error;}
-const observedAt=new Date().toISOString();
+
+
 const mergedRecords=mergeContestRecords(filtered,previous,observedAt)
   .sort((a,b)=>Number(b.isNew)-Number(a.isNew)||Number(b.announcementUpdated)-Number(a.announcementUpdated)||String(b.editModifyDate||b.startDate||'').localeCompare(String(a.editModifyDate||a.startDate||'')))
   .slice(0,700);
