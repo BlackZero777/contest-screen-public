@@ -198,7 +198,7 @@ const pausedSources=new Set((previous?.manualSearchSources||[]).map(x=>x.url));
 const siteOutcomes=await Promise.allSettled(TARGET_SITES.map(site=>pausedSources.has(site.url)?Promise.resolve({manual:true,fetched:0,items:[],entryPages:0,detailPages:0}):fetchTargetSite(site)));
 const rawSiteResults=siteOutcomes.map((o,i)=>({name:TARGET_SITES[i].name,url:TARGET_SITES[i].url,status:o.status==='fulfilled'?(o.value.manual?'manual':o.value.fetched?'success':'empty'):'failed',fetched:o.status==='fulfilled'?o.value.fetched:0,kept:o.status==='fulfilled'?o.value.items.length:0,entryPages:o.status==='fulfilled'?(o.value.entryPages||0):0,detailPages:o.status==='fulfilled'?(o.value.detailPages||0):0,error:o.status==='rejected'?String(o.reason?.message||o.reason):''}));
 const sourceHealth={...(previous?.sourceHealth||{})};
-const countThisRun=process.env.GITHUB_EVENT_NAME!=='workflow_dispatch';
+const countThisRun=process.env.GITHUB_EVENT_NAME==='schedule';
 for(const result of rawSiteResults){
  const oldHealth=sourceHealth[result.url]||{consecutiveNoData:0};
  if(result.status==='manual')continue;
