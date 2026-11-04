@@ -90,15 +90,15 @@ function renderSyncHistory(){
  const fmt=v=>{const x=new Date(v);return Number.isNaN(+x)?'時間未提供':x.toLocaleString('zh-TW',{hour12:false});};
  const cards=history.map((e,index)=>{
   const sources=[...(e.sites||[]),...(e.official||[])];
-  const success=sources.filter(x=>x.status==='success').length;
-  const failed=sources.filter(x=>x.status!=='success').length;
-  const noClue=(e.sites||[]).filter(x=>x.status==='success'&&!Number(x.kept||0)).length;
+  const success=sources.filter(x=>x.status==='success'||x.status==='empty').length;
+  const failed=sources.filter(x=>x.status==='failed').length;
+  const noClue=(e.sites||[]).filter(x=>x.status==='success'&&!Number(x.kept||0)).length;\n  const noLinks=(e.sites||[]).filter(x=>x.status==='empty').length;
   const rows=sources.map(x=>{
    const isSite=(e.sites||[]).includes(x),n=isSite?Number(x.kept||0):Number(x.fetched||0);
-   const label=x.status!=='success'?'讀取失敗':isSite?(n?'找到 '+n+' 筆':'本次未找到'):'成功 '+n+' 筆';
-   return '<div class="sync-history-source"><span>'+esc(x.name)+'</span><b class="'+(x.status!=='success'?'sync-failed':n?'sync-found':'sync-empty')+'">'+label+'</b>'+(x.error?'<small>'+esc(x.error)+'</small>':'')+'</div>';
+   const label=x.status==='failed'?'讀取失敗':x.status==='empty'?'未擷取到列表連結':isSite?(n?'找到 '+n+' 筆':'本次未找到'):'成功 '+n+' 筆';
+   return '<div class="sync-history-source"><span>'+esc(x.name)+'</span><b class="'+(x.status==='failed'?'sync-failed':n?'sync-found':'sync-empty')+'">'+label+'</b>'+(x.error?'<small>'+esc(x.error)+'</small>':'')+'</div>';
   }).join('');
-  return '<article class="sync-history-column"><div class="sync-history-date">'+fmt(e.generatedAt)+'</div><div class="sync-history-metrics"><b>新增 '+Number(e.added||0)+' 筆</b><span>候選共 '+Number(e.total||0)+' 筆</span></div><div class="sync-history-summary">'+success+'/'+sources.length+' 個來源成功'+(failed?' · '+failed+' 個讀取失敗':'')+(noClue?' · '+noClue+' 個來源無新線索':'')+'</div><details><summary>查看來源明細</summary><div class="sync-history-details">'+rows+'</div></details></article>';
+  return '<article class="sync-history-column"><div class="sync-history-date">'+fmt(e.generatedAt)+'</div><div class="sync-history-metrics"><b>新增 '+Number(e.added||0)+' 筆</b><span>候選共 '+Number(e.total||0)+' 筆</span></div><div class="sync-history-summary">'+success+'/'+sources.length+' 個來源成功'+(failed?' · '+failed+' 個讀取失敗':'')+(noClue?' · '+noClue+' 個來源無符合線索':'')+(noLinks?' · '+noLinks+' 個來源未擷取到列表連結':'')+'</div><details><summary>查看來源明細</summary><div class="sync-history-details">'+rows+'</div></details></article>';
  }).join('');
  box.innerHTML='<div class="sync-history-columns">'+cards+'</div>';
 }
