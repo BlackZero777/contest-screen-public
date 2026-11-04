@@ -58,12 +58,12 @@ async function fetchSource(feed) {
   const items = normalizePayload(payload).filter(item => item && typeof item === 'object');
   return items.map(item => normalizeItem(item, feed.kind));
 }
-function decodeHtml(v){return String(v||'').replace(/<script[\\s\\S]*?<\\/script>/gi,' ').replace(/<style[\\s\\S]*?<\\/style>/gi,' ').replace(/<[^>]+>/g,' ').replace(/&nbsp;/gi,' ').replace(/&amp;/gi,'&').replace(/&lt;/gi,'<').replace(/&gt;/gi,'>').replace(/&quot;/gi,'"').replace(/&#39;|&apos;/gi,"'").replace(/\\s+/g,' ').trim();}
+function decodeHtml(v){return String(v||'').replace(/<script[\s\S]*?<\/script>/gi,' ').replace(/<style[\s\S]*?<\/style>/gi,' ').replace(/<[^>]+>/g,' ').replace(/&nbsp;/gi,' ').replace(/&amp;/gi,'&').replace(/&lt;/gi,'<').replace(/&gt;/gi,'>').replace(/&quot;/gi,'"').replace(/&#39;|&apos;/gi,"'").replace(/\s+/g,' ').trim();}
 async function fetchTargetSite(site){
  const res=await fetch(site.url,{headers:{Accept:'text/html,application/xhtml+xml','User-Agent':'Mozilla/5.0 ContestScreenWorkbench/3.0'},signal:AbortSignal.timeout(25000)});
  if(!res.ok)throw new Error('HTTP '+res.status);
  const html=await res.text();
- const anchors=[...html.matchAll(/<a\\b([^>]*)href=["']([^"'#]+)["']([^>]*)>([\\s\\S]*?)<\\/a>/gi)];
+ const anchors=[...html.matchAll(/<a\\b([^>]*)href=["']([^"'#]+)["']([^>]*)>([\s\S]*?)<\/a>/gi)];
  const items=anchors.map(m=>{const title=decodeHtml(m[4]);if(title.length<4)return null;let url;try{url=new URL(m[2],site.url).href;}catch{return null;}return normalizeItem({UID:'site:'+url,title,sourceWebName:site.name,sourceWebPromote:url,comment:'直接從指定網站擷取的線索，仍須回原始公告查核。'},'指定網站線索');}).filter(Boolean);
  const kept=dedupe(items.filter(isUsefulSearchClue));
  return {fetched:items.length,items:kept};
@@ -106,7 +106,7 @@ const filtered = dedupe(all.filter(isUsefulSearchClue))
   .slice(0, 700);
 if (!filtered.length) throw new Error('公開來源讀取成功，但沒有符合篩選條件的活動；為避免清空現有資料，停止更新。');
 let previous=null;
-try{const oldText=await readFile(OUTPUT,'utf8');const oldMatch=oldText.match(/window\\.ContestDiscoveryFeed\\s*=\\s*([\\s\\S]*);\\s*$/);if(oldMatch)previous=JSON.parse(oldMatch[1]);}catch{}
+try{const oldText=await readFile(OUTPUT,'utf8');const oldMatch=oldText.match(/window\\.ContestDiscoveryFeed\s*=\s*([\s\S]*);\s*$/);if(oldMatch)previous=JSON.parse(oldMatch[1]);}catch{}
 const oldIds=new Set((previous?.records||[]).map(x=>x.UID).filter(Boolean));
 const updateEntry={generatedAt:new Date().toISOString(),added:filtered.filter(x=>x.UID&&!oldIds.has(x.UID)).length,total:filtered.length,official:outcomes.map((o,i)=>({name:FEEDS[i].name,status:o.status==='fulfilled'?'success':'failed',fetched:o.status==='fulfilled'?o.value.items.length:0,error:o.status==='rejected'?String(o.reason?.message||o.reason):''})),sites:siteResults};
 const syncHistory=[updateEntry,...(previous?.syncHistory||[])].slice(0,3);
