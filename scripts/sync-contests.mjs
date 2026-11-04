@@ -10,9 +10,9 @@ const FEEDS = [
 ];
 const TARGET_SITES = [
  {name:'獎金獵人',url:'https://bhuntr.com/tw'},
- {name:'點子秀',url:'https://news.idea-show.com/'},
+ {name:'點子秀',url:'https://news.idea-show.com/',extraUrls:['https://news.idea-show.com/active/']},
  {name:'中華民國美術設計協會',url:'https://www.gda-tw.org/news/notelist.php'},
- {name:'臺灣藝術教育網',url:'https://ed.arte.gov.tw/'},
+ {name:'臺灣藝術教育網',url:'https://ed.arte.gov.tw/ch/index.aspx',extraUrls:['https://ed.arte.gov.tw/ch/content/m_compete.aspx']},
  {name:'臺藝大視傳系',url:'https://vcd.ntua.edu.tw/compnews'},
  {name:'文化部獎補助資訊網',url:'https://grants.moc.gov.tw/'}
 ];
@@ -58,15 +58,44 @@ async function fetchSource(feed) {
   const items = normalizePayload(payload).filter(item => item && typeof item === 'object');
   return items.map(item => normalizeItem(item, feed.kind));
 }
-function decodeHtml(v){return String(v||'').replace(/<script[\s\S]*?<\/script>/gi,' ').replace(/<style[\s\S]*?<\/style>/gi,' ').replace(/<[^>]+>/g,' ').replace(/&nbsp;/gi,' ').replace(/&amp;/gi,'&').replace(/&lt;/gi,'<').replace(/&gt;/gi,'>').replace(/&quot;/gi,'"').replace(/&#39;|&apos;/gi,"'").replace(/\s+/g,' ').trim();}
-async function fetchTargetSite(site){
- const res=await fetch(site.url,{headers:{Accept:'text/html,application/xhtml+xml','User-Agent':'Mozilla/5.0 ContestScreenWorkbench/3.0'},signal:AbortSignal.timeout(25000)});
+function decodeHtml(v){return String(v||'').replace(/<script[\s\S]*?<\/script>/gi,' ').replace(/<style[\s\S]*?<\/style>/gi,' ').replace(/<[^>]+>/g,' ').replace(/&nbsp;|&#160;/gi,' ').replace(/&amp;/gi,'&').replace(/&lt;/gi,'<').replace(/&gt;/gi,'>').replace(/&quot;/gi,'"').replace(/&#39;|&apos;/gi,"'").replace(/&#(\d+);/g,(_,n)=>String.fromCodePoint(Number(n))).replace(/\s+/g,' ').trim();}
+function extractPageText(html){
+ const title=(html.match(/<title[^>]*>([\s\S]*?)<\/title>/i)||[])[1]||'';
+ const headings=[...html.matchAll(/<h[1-3][^>]*>([\s\S]*?)<\/h[1-3]>/gi)].map(m=>decodeHtml(m[1])).filter(Boolean);
+ const body=String(html||'').replace(/<script[\s\S]*?<\/script>/gi,' ').replace(/<style[\s\S]*?<\/style>/gi,' ').replace(/<nav[\s\S]*?<\/nav>/gi,' ').replace(/<footer[\s\S]*?<\/footer>/gi,' ');
+ return [decodeHtml(title),...headings,decodeHtml(body)].filter(Boolean).join(' ').slice(0,6000);
+}
+async function fetchHtml(url,timeout=16000){
+ const res=await fetch(url,{headers:{Accept:'text/html,application/xhtml+xml','User-Agent':'Mozilla/5.0 (compatible; ContestScreenWorkbench/3.1; +https://github.com/BlackZero777/contest-screen-public)'},signal:AbortSignal.timeout(timeout)});
  if(!res.ok)throw new Error('HTTP '+res.status);
- const html=await res.text();
- const anchors=[...html.matchAll(/<a\b([^>]*)href=["']([^"'#]+)["']([^>]*)>([\s\S]*?)<\/a>/gi)];
- const items=anchors.map(m=>{const title=decodeHtml(m[4]);if(title.length<4)return null;let url;try{url=new URL(m[2],site.url).href;}catch{return null;}return normalizeItem({UID:'site:'+url,title,sourceWebName:site.name,sourceWebPromote:url,comment:'直接從指定網站擷取的線索，仍須回原始公告查核。'},'指定網站線索');}).filter(Boolean);
- const kept=dedupe(items.filter(isUsefulSearchClue));
- return {fetched:items.length,items:kept};
+ return await res.text();
+}
+async function fetchTargetSite(site){
+ const entryUrls=[site.url,...(site.extraUrls||[])];
+ const pages=await Promise.allSettled(entryUrls.map(async url=>({url,html:await fetchHtml(url)})));
+ const successful=pages.filter(x=>x.status==='fulfilled').map(x=>x.value);
+ if(!successful.length)throw new Error(pages.map(x=>x.reason?.message||'讀取失敗').join('; '));
+ const candidates=[];
+ for(const page of successful){
+  const anchors=[...page.html.matchAll(/<a\b([^>]*)href=["']([^"'#]+)["']([^>]*)>([\s\S]*?)<\/a>/gi)];
+  for(const m of anchors){
+   const title=decodeHtml(m[4]).replace(/\s+/g,' ').trim();
+   if(title.length<4)continue;
+   let url;try{url=new URL(m[2],page.url).href;}catch{continue;}
+   if(!/^https?:/i.test(url)||url===page.url)continue;
+   if(candidates.some(x=>x.sourceWebPromote===url))continue;
+   candidates.push(normalizeItem({UID:'site:'+url,title,sourceWebName:site.name,sourceWebPromote:url,comment:'直接從指定網站列表擷取的線索，詳細資格與截止資訊待核對。'},'指定網站線索'));
+  }
+ }
+ const shortlist=candidates.filter(x=>RELEVANT.test(searchableText(x))).slice(0,12);
+ const details=await Promise.allSettled(shortlist.map(async item=>{
+  const html=await fetchHtml(item.sourceWebPromote,12000);
+  const text=extractPageText(html);
+  return {...item,descriptionFilterHtml:text,comment:text||item.comment};
+ }));
+ const enriched=details.map((result,i)=>result.status==='fulfilled'?result.value:shortlist[i]);
+ const kept=dedupe([...enriched,...candidates.filter(x=>!shortlist.some(y=>y.sourceWebPromote===x.sourceWebPromote))].filter(isUsefulSearchClue));
+ return {fetched:candidates.length,items:kept,entryPages:successful.length,detailPages:details.filter(x=>x.status==='fulfilled').length};
 }
 const STUDENT_ONLY = /(?:僅限|只限|限於|限)\s*(?:全國)?(?:大專院校|大學|研究所|高中職|高中|高職|專科)?\s*(?:在學)?學生(?:參賽|報名|參加)?|學生專屬(?:競賽|比賽|徵件|組)?|限學生(?:參加|報名|參賽)?|在學學生限定|學生限定(?:競賽|比賽|徵件)?/i;
 function isUsefulSearchClue(item) {
