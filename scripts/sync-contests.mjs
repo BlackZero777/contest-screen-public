@@ -87,7 +87,7 @@ async function fetchTargetSite(site){
    candidates.push(normalizeItem({UID:'site:'+url,title,sourceWebName:site.name,sourceWebPromote:url,comment:'直接從指定網站列表擷取的線索，詳細資格與截止資訊待核對。'},'指定網站線索'));
   }
  }
- const shortlist=candidates.filter(x=>RELEVANT.test(searchableText(x))).slice(0,12);
+ const shortlist=candidates.filter(x=>{const t=[x.title,x.comment].join(' ');return RELEVANT.test(t)&&/競賽|比賽|大賽|徵件|徵選|徵稿|徵文|投稿|獎項|參賽|作品募集|公開徵求/i.test(t);}).slice(0,12);
  const details=await Promise.allSettled(shortlist.map(async item=>{
   const html=await fetchHtml(item.sourceWebPromote,12000);
   const text=extractPageText(html);
@@ -99,14 +99,12 @@ async function fetchTargetSite(site){
 }
 const STUDENT_ONLY = /(?:僅限|只限|限於|限)\s*(?:全國)?(?:大專院校|大學|研究所|高中職|高中|高職|專科)?\s*(?:在學)?學生(?:參賽|報名|參加)?|學生專屬(?:競賽|比賽|徵件|組)?|限學生(?:參加|報名|參賽)?|在學學生限定|學生限定(?:競賽|比賽|徵件)?/i;
 function isUsefulSearchClue(item) {
-  if (STUDENT_ONLY.test(searchableText(item))) return false;
-  if (item._kind !== '網路搜尋線索') return RELEVANT.test(searchableText(item)) && !EXCLUDE.test(searchableText(item));
-  const titleAndDescription = [item.title, item.descriptionFilterHtml].join(' ');
-  const title = String(item.title || '');
-  const hasTopic = /設計|插畫|繪畫|美術|海報|漫畫|圖像|書法|攝影|動畫|影像|短影音|影片|視覺|藝術|創意|生成式|貼圖|平面|文學|文藝|詩|對聯|徵聯|標語|命名|徵稿|徵文|散文|小說|歌詞|文字|文案|劇本|寫作|音樂|歌曲|作曲|作詞|配樂|聲音|樂曲|AI|logo/i.test(titleAndDescription);
-  const hasContestSignal = /競賽|比賽|徵件|徵選|徵稿|徵文|投稿|創作大賽|獎項|參賽|作品募集|公開徵求/i.test(titleAndDescription);
-  const obviousNoise = /維基百科|wikipedia|自由行|旅遊攻略|觀光資訊網|總統府|首頁|新聞首頁|天氣預報/i.test(title);
-  return hasTopic && hasContestSignal && !obviousNoise && !EXCLUDE.test(titleAndDescription);
+  const contentText = [item.title,item.titile,item.category,item.descriptionFilterHtml,item.comment].flat().join(' ');
+  if (STUDENT_ONLY.test(contentText)) return false;
+  const hasTopic = RELEVANT.test(contentText);
+  const hasContestSignal = /競賽|比賽|大賽|徵件|徵選|徵稿|徵文|投稿|創作大賽|獎項|參賽|作品募集|公開徵求/i.test(contentText);
+  const obviousNoise = /維基百科|wikipedia|自由行|旅遊攻略|觀光資訊網|總統府|首頁|新聞首頁|天氣預報|網站導覽|會員登入|聯絡我們|隱私權|網站地圖/i.test(String(item.title||''));
+  return hasTopic && hasContestSignal && !obviousNoise && !EXCLUDE.test(contentText);
 }
 function dedupe(items) {
   const seen = new Set();
@@ -158,7 +156,9 @@ function mergeContestRecords(items, previous, observedAt) {
     const nextHistory = [...priorHistory];
     for (const snapshot of currentSnapshots) {
       const sameSource = nextHistory.filter(x => (x.sourceUrl || x.sourceName) === (snapshot.sourceUrl || snapshot.sourceName));
-      if (sameSource.length && !sameSource.some(x => x.fingerprint === snapshot.fingerprint)) announcementUpdated = true;
+      const priorHasContent = sameSource.some(x => String(x.description || '').length >= 80 && !String(x.description || '').includes('直接從指定網站擷取的線索'));
+      const currentHasContent = String(snapshot.description || '').length >= 80 && !String(snapshot.description || '').includes('直接從指定網站擷取的線索');
+      if (priorHasContent && currentHasContent && !sameSource.some(x => x.fingerprint === snapshot.fingerprint)) announcementUpdated = true;
       if (!nextHistory.some(x => x.fingerprint === snapshot.fingerprint && x.sourceUrl === snapshot.sourceUrl && x.sourceName === snapshot.sourceName)) {
         snapshot.version = sameSource.length + 1;
         nextHistory.push(snapshot);
