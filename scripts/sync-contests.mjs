@@ -1,4 +1,4 @@
-import { writeFile } from 'node:fs/promises';
+import { readFile, writeFile } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
 import path from 'node:path';
 
@@ -8,22 +8,13 @@ const FEEDS = [
   { name: '文化部競賽活動', url: 'https://cloud.culture.tw/frontsite/trans/SearchShowAction.do?category=13&method=doFindTypeJ', kind: '競賽' },
   { name: '文化部公開徵選', url: 'https://cloud.culture.tw/frontsite/trans/SearchShowAction.do?category=14&method=doFindTypeJ', kind: '徵選' }
 ];
-// Bing RSS is used only as a discovery clue source; each result still needs official-page verification.
-const SEARCH_QUERIES = [
-  '台灣 AI 插畫 AI繪圖 比賽 徵件 2026',
-  '台灣 海報 視覺設計 漫畫 貼圖 比賽 徵件 2026',
-  '台灣 AI 圖轉動畫 短動畫 創作競賽 徵件',
-  '台灣 AI 音樂 歌曲 作曲 比賽 徵件 2026',
-  '台灣 命名 標語 文案 徵件 比賽 2026',
-  '台灣 詩詞 對聯 徵聯 短詩 徵稿 2026',
-  'site:bhuntr.com/tw 插畫 設計 AI 音樂 文學 競賽 徵件',
-  'site:news.idea-show.com 設計 插畫 漫畫 攝影 徵件 比賽',
-  'site:gda-tw.org/news/notelist.php 美術 設計 海報 徵件 競賽',
-  'site:ed.arte.gov.tw 藝術 美術 設計 學生 競賽 徵件',
-  'site:vcd.ntua.edu.tw/compnews 視覺傳達 設計 競賽 徵件',
-  'site:grants.moc.gov.tw 藝術 設計 創作 徵件 補助 申請',
-  'site:bhuntr.com/tw/competitions AI 音樂 文學 創作大賽',
-  'site:news.idea-show.com 徵件 徵稿 競賽 獎金'
+const TARGET_SITES = [
+ {name:'獎金獵人',url:'https://bhuntr.com/tw'},
+ {name:'點子秀',url:'https://news.idea-show.com/'},
+ {name:'中華民國美術設計協會',url:'https://www.gda-tw.org/news/notelist.php'},
+ {name:'臺灣藝術教育網',url:'https://ed.arte.gov.tw/'},
+ {name:'臺藝大視傳系',url:'https://vcd.ntua.edu.tw/compnews'},
+ {name:'文化部獎補助資訊網',url:'https://grants.moc.gov.tw/'}
 ];
 const RELEVANT = /設計|插畫|繪畫|美術|海報|漫畫|圖像|書法|攝影|動畫|影像|短影音|影片|視覺|藝術|創意|生成式|貼圖|平面|文學|文藝|詩|對聯|徵聯|標語|命名|徵稿|徵文|散文|小說|歌詞|文字|文案|劇本|寫作|音樂|歌曲|作曲|作詞|配樂|聲音|樂曲|徵件|競賽|比賽|徵選|公開徵求|創作|AI|logo/i;
 const EXCLUDE = /才藝表演|舞蹈比賽|體育競賽|運動賽|歌唱選秀|合唱比賽|歌唱比賽|歌唱競賽|音樂會|演唱會|徵才|徵人|招聘/i;
@@ -67,40 +58,15 @@ async function fetchSource(feed) {
   const items = normalizePayload(payload).filter(item => item && typeof item === 'object');
   return items.map(item => normalizeItem(item, feed.kind));
 }
-function decodeXml(value) {
-  return String(value || '').replace(/<!\[CDATA\[([\s\S]*?)\]\]>/g, '$1')
-    .replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>')
-    .replace(/&quot;/g, '"').replace(/&#39;|&apos;/g, "'").trim();
-}
-function xmlValue(block, tag) {
-  const match = block.match(new RegExp('<' + tag + '(?:\\s[^>]*)?>([\\s\\S]*?)</' + tag + '>', 'i'));
-  return match ? decodeXml(match[1]) : '';
-}
-async function fetchSearchQuery(query, index) {
-  const url = 'https://www.bing.com/search?format=rss&q=' + encodeURIComponent(query);
-  const response = await fetch(url, {
-    headers: { Accept: 'application/rss+xml, application/xml, text/xml', 'User-Agent': 'ContestScreenWorkbench/2.0 (public contest discovery)' },
-    signal: AbortSignal.timeout(20000)
-  });
-  if (!response.ok) throw new Error('Bing RSS HTTP ' + response.status);
-  const xml = await response.text();
-  if (!/<rss[\s>]/i.test(xml)) throw new Error('搜尋來源未回傳 RSS');
-  const items = [...xml.matchAll(/<item(?:\s[^>]*)?>([\s\S]*?)<\/item>/gi)].map(match => {
-    const block = match[1];
-    const title = xmlValue(block, 'title');
-    const link = xmlValue(block, 'link');
-    const description = xmlValue(block, 'description');
-    if (!title || !/^https?:\/\//i.test(link)) return null;
-    return normalizeItem({
-      UID: 'bing:' + link,
-      title,
-      descriptionFilterHtml: description,
-      sourceWebName: (() => { try { return new URL(link).hostname + '（搜尋線索）'; } catch { return 'Bing 網頁搜尋（線索）'; } })(),
-      sourceWebPromote: link,
-      comment: '此筆來自公開網頁搜尋摘要，不是主辦方核實資料。請開啟原始頁面確認是否為當年度有效徵件。'
-    }, '網路搜尋線索');
-  }).filter(Boolean);
-  return items;
+function decodeHtml(v){return String(v||'').replace(/<script[\\s\\S]*?<\\/script>/gi,' ').replace(/<style[\\s\\S]*?<\\/style>/gi,' ').replace(/<[^>]+>/g,' ').replace(/&nbsp;/gi,' ').replace(/&amp;/gi,'&').replace(/&lt;/gi,'<').replace(/&gt;/gi,'>').replace(/&quot;/gi,'"').replace(/&#39;|&apos;/gi,"'").replace(/\\s+/g,' ').trim();}
+async function fetchTargetSite(site){
+ const res=await fetch(site.url,{headers:{Accept:'text/html,application/xhtml+xml','User-Agent':'Mozilla/5.0 ContestScreenWorkbench/3.0'},signal:AbortSignal.timeout(25000)});
+ if(!res.ok)throw new Error('HTTP '+res.status);
+ const html=await res.text();
+ const anchors=[...html.matchAll(/<a\\b([^>]*)href=["']([^"'#]+)["']([^>]*)>([\\s\\S]*?)<\\/a>/gi)];
+ const items=anchors.map(m=>{const title=decodeHtml(m[4]);if(title.length<4)return null;let url;try{url=new URL(m[2],site.url).href;}catch{return null;}return normalizeItem({UID:'site:'+url,title,sourceWebName:site.name,sourceWebPromote:url,comment:'直接從指定網站擷取的線索，仍須回原始公告查核。'},'指定網站線索');}).filter(Boolean);
+ const kept=dedupe(items.filter(isUsefulSearchClue));
+ return {fetched:items.length,items:kept};
 }
 function isUsefulSearchClue(item) {
   if (item._kind !== '網路搜尋線索') return RELEVANT.test(searchableText(item)) && !EXCLUDE.test(searchableText(item));
@@ -127,23 +93,29 @@ if (!official.length) {
   const errors = outcomes.map((outcome, i) => outcome.status === 'rejected' ? FEEDS[i].name + ': ' + String(outcome.reason) : '').filter(Boolean);
   throw new Error('所有官方公開資料來源都失敗，為避免覆蓋舊快取而停止更新。' + errors.join('；'));
 }
-const searches = await Promise.allSettled(SEARCH_QUERIES.map((query, index) => fetchSearchQuery(query, index)));
-const searchItems = searches.flatMap(outcome => outcome.status === 'fulfilled' ? outcome.value : []);
-const all = [...official, ...searchItems];
+const siteOutcomes=await Promise.allSettled(TARGET_SITES.map(fetchTargetSite));
+const siteResults=siteOutcomes.map((o,i)=>({name:TARGET_SITES[i].name,url:TARGET_SITES[i].url,status:o.status==='fulfilled'?'success':'failed',fetched:o.status==='fulfilled'?o.value.fetched:0,kept:o.status==='fulfilled'?o.value.items.length:0,error:o.status==='rejected'?String(o.reason?.message||o.reason):''}));
+const siteItems=siteOutcomes.flatMap(o=>o.status==='fulfilled'?o.value.items:[]);
+const all = [...official, ...siteItems];
 const filtered = dedupe(all.filter(isUsefulSearchClue))
   .sort((a, b) => {
-    const aSearch = a._kind === '網路搜尋線索' ? 1 : 0;
-    const bSearch = b._kind === '網路搜尋線索' ? 1 : 0;
+    const aSearch = a._kind === '指定網站線索' ? 1 : 0;
+    const bSearch = b._kind === '指定網站線索' ? 1 : 0;
     return aSearch - bSearch || String(b.editModifyDate || b.startDate || '').localeCompare(String(a.editModifyDate || a.startDate || ''));
   })
   .slice(0, 700);
 if (!filtered.length) throw new Error('公開來源讀取成功，但沒有符合篩選條件的活動；為避免清空現有資料，停止更新。');
+let previous=null;
+try{const oldText=await readFile(OUTPUT,'utf8');const oldMatch=oldText.match(/window\\.ContestDiscoveryFeed\\s*=\\s*([\\s\\S]*);\\s*$/);if(oldMatch)previous=JSON.parse(oldMatch[1]);}catch{}
+const oldIds=new Set((previous?.records||[]).map(x=>x.UID).filter(Boolean));
+const updateEntry={generatedAt:new Date().toISOString(),added:filtered.filter(x=>x.UID&&!oldIds.has(x.UID)).length,total:filtered.length,official:outcomes.map((o,i)=>({name:FEEDS[i].name,status:o.status==='fulfilled'?'success':'failed',fetched:o.status==='fulfilled'?o.value.items.length:0,error:o.status==='rejected'?String(o.reason?.message||o.reason):''})),sites:siteResults};
+const syncHistory=[updateEntry,...(previous?.syncHistory||[])].slice(0,3);
+
 const payload = {
-  generatedAt: new Date().toISOString(),
+  generatedAt: updateEntry.generatedAt,
+  syncHistory,
   sources: [
-    ...FEEDS.map(({ name, url }) => ({ name, url, type: 'official_public_data' })),
-    { name: 'Bing RSS 公開網頁搜尋', type: 'discovery_clues_only', queryCount: SEARCH_QUERIES.length },
-    { name: '獎金獵人', url: 'https://bhuntr.com/tw', type: 'targeted_search_clue' },
+    ...FEEDS.map(({ name, url }) => ({ name, url, type: 'official_public_data' })),    { name: '獎金獵人', url: 'https://bhuntr.com/tw', type: 'targeted_search_clue' },
     { name: '點子秀', url: 'https://news.idea-show.com/', type: 'targeted_search_clue' },
     { name: '中華民國美術設計協會', url: 'https://www.gda-tw.org/news/notelist.php', type: 'targeted_search_clue' },
     { name: '臺灣藝術教育網', url: 'https://ed.arte.gov.tw/', type: 'targeted_search_clue' },
@@ -152,12 +124,10 @@ const payload = {
   ],
   totalFetched: all.length,
   officialFetched: official.length,
-  searchResultsFetched: searchItems.length,
-  searchQueriesSucceeded: searches.filter(outcome => outcome.status === 'fulfilled').length,
-  searchQueriesFailed: searches.filter(outcome => outcome.status === 'rejected').length,
+  targetSites: siteResults,
   recordCount: filtered.length,
   records: filtered
 };
 const content = '/* Auto-generated by scripts/sync-contests.mjs. Do not edit manually. */\nwindow.ContestDiscoveryFeed = ' + JSON.stringify(payload, null, 2) + ';\n';
 await writeFile(OUTPUT, content, 'utf8');
-console.log('Synced ' + official.length + ' official public records and ' + searchItems.length + ' search clues; kept ' + filtered.length + ' candidates. Search queries succeeded: ' + searches.filter(outcome => outcome.status === 'fulfilled').length + '/' + SEARCH_QUERIES.length + '.');
+console.log('Synced ' + official.length + ' official records and ' + siteItems.length + ' direct-site clues; kept ' + filtered.length + ' candidates.');
