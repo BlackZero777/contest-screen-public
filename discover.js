@@ -75,7 +75,7 @@ function buildHandoffPrompt(x){
  '- 若官方資料不足，清楚標示缺口，不要自行猜測，也不要建議我聯絡主辦方詢問一般規則問題。',
  '',
  '請先回報官方來源查核結果，再進行參賽可行性判斷。'
- ].join('\\n');
+ ].join('\n');
 }
 async function copyText(text){
  if(navigator.clipboard&&window.isSecureContext){await navigator.clipboard.writeText(text);return;}
