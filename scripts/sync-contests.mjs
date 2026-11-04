@@ -89,6 +89,73 @@ function dedupe(items) {
   });
 }
 
+function cleanTitle(value) {
+  return decodeHtml(value).toLowerCase()
+    .replace(/[（(](?:歡迎參加|歡迎報名|截止[^）)]*)[）)]/g, '')
+    .replace(/[，,、]\\s*(?:20\\d{2}[年./-]\\s*)?\\d{1,2}[月./-]\\s*\\d{1,2}日?截止.*$/i, '')
+    .replace(/[，,、]\\s*(?:歡迎參加|歡迎報名).*$/i, '')
+    .replace(/[^\\p{L}\\p{N}]/gu, '');
+}
+function contestKey(item) {
+  const title = cleanTitle(item.title || item.titile || '');
+  const hasEditionYear = /20\\d{2}/.test(title);
+  const dateYear = String(item.startDate || item.endDate || '').match(/20\\d{2}/)?.[0] || '';
+  return title + (hasEditionYear ? '' : '|year:' + dateYear);
+}
+function announcementSnapshot(item, observedAt) {
+  const title = decodeHtml(item.title || item.titile || '');
+  const description = decodeHtml(item.descriptionFilterHtml || item.comment || '').slice(0, 500);
+  const sourceUrl = item.sourceWebPromote || item.webSales || '';
+  const sourceName = item.sourceWebName || item.showUnit || item.masterUnit || '來源未提供';
+  const fingerprint = [cleanTitle(title), item.startDate || '', item.endDate || '', description].join('|');
+  return {sourceName,sourceUrl,title,startDate:item.startDate||'',endDate:item.endDate||'',description,fingerprint,observedAt};
+}
+function mergeContestRecords(items, previous, observedAt) {
+  const previousMap = new Map((previous?.records || []).map(item => [item.recordKey || contestKey(item), item]));
+  const groups = new Map();
+  for (const item of items) {
+    const key = contestKey(item);
+    if (!key || key === '|year:') continue;
+    if (!groups.has(key)) groups.set(key, []);
+    groups.get(key).push(item);
+  }
+  const merged = [];
+  for (const [key, group] of groups) {
+    const primary = group.find(x => x._kind !== '指定網站線索') || group[0];
+    const prior = previousMap.get(key);
+    const priorHistory = prior?.announcementHistory || [];
+    const currentSnapshots = group.map(x => announcementSnapshot(x, observedAt));
+    let announcementUpdated = false;
+    const nextHistory = [...priorHistory];
+    for (const snapshot of currentSnapshots) {
+      const sameSource = nextHistory.filter(x => (x.sourceUrl || x.sourceName) === (snapshot.sourceUrl || snapshot.sourceName));
+      if (sameSource.length && !sameSource.some(x => x.fingerprint === snapshot.fingerprint)) announcementUpdated = true;
+      if (!nextHistory.some(x => x.fingerprint === snapshot.fingerprint && x.sourceUrl === snapshot.sourceUrl && x.sourceName === snapshot.sourceName)) {
+        snapshot.version = sameSource.length + 1;
+        nextHistory.push(snapshot);
+      }
+    }
+    const sourceLinks = [];
+    for (const item of group) {
+      const url = item.sourceWebPromote || item.webSales || '';
+      const name = item.sourceWebName || item.showUnit || item.masterUnit || '來源未提供';
+      if (!sourceLinks.some(x => x.url === url && x.name === name)) sourceLinks.push({name,url});
+    }
+    merged.push({
+      ...primary,
+      recordKey:key,
+      editionKey:key,
+      sourceLinks,
+      announcementHistory:nextHistory.slice(-12),
+      firstSeenAt:prior?.firstSeenAt || observedAt,
+      lastSeenAt:observedAt,
+      isNew:!prior,
+      announcementUpdated
+    });
+  }
+  return merged;
+}
+
 const outcomes = await Promise.allSettled(FEEDS.map(async feed => ({ feed, items: await fetchSource(feed) })));
 const official = outcomes.flatMap(outcome => outcome.status === 'fulfilled' ? outcome.value.items : []);
 if (!official.length) {
@@ -104,13 +171,18 @@ const filtered = dedupe(all.filter(isUsefulSearchClue))
     const aSearch = a._kind === '指定網站線索' ? 1 : 0;
     const bSearch = b._kind === '指定網站線索' ? 1 : 0;
     return aSearch - bSearch || String(b.editModifyDate || b.startDate || '').localeCompare(String(a.editModifyDate || a.startDate || ''));
-  })
-  .slice(0, 700);
+  });
 if (!filtered.length) throw new Error('公開來源讀取成功，但沒有符合篩選條件的活動；為避免清空現有資料，停止更新。');
 let previous=null;
-try{const oldText=await readFile(OUTPUT,'utf8');const oldMatch=oldText.match(/window\.ContestDiscoveryFeed\s*=\s*([\s\S]*);\s*$/);if(!oldMatch)throw new Error('舊版資料格式無法辨識，為避免遺失更新紀錄，停止覆寫。');previous=JSON.parse(oldMatch[1]);}catch(error){if(error.code!=='ENOENT')throw error;}
-const oldIds=new Set((previous?.records||[]).map(x=>x.UID).filter(Boolean));
-const updateEntry={generatedAt:new Date().toISOString(),added:filtered.filter(x=>x.UID&&!oldIds.has(x.UID)).length,total:filtered.length,official:outcomes.map((o,i)=>({name:FEEDS[i].name,status:o.status==='fulfilled'?'success':'failed',fetched:o.status==='fulfilled'?o.value.items.length:0,error:o.status==='rejected'?String(o.reason?.message||o.reason):''})),sites:siteResults};
+try{const oldText=await readFile(OUTPUT,'utf8');const oldMatch=oldText.match(/window\\.ContestDiscoveryFeed\\s*=\\s*([\\s\\S]*);\\s*$/);if(!oldMatch)throw new Error('舊版資料格式無法辨識，為避免遺失更新紀錄，停止覆寫。');previous=JSON.parse(oldMatch[1]);}catch(error){if(error.code!=='ENOENT')throw error;}
+const observedAt=new Date().toISOString();
+const mergedRecords=mergeContestRecords(filtered,previous,observedAt)
+  .sort((a,b)=>Number(b.isNew)-Number(a.isNew)||Number(b.announcementUpdated)-Number(a.announcementUpdated)||String(b.editModifyDate||b.startDate||'').localeCompare(String(a.editModifyDate||a.startDate||'')))
+  .slice(0,700);
+const oldKeys=new Set((previous?.records||[]).map(x=>x.recordKey||contestKey(x)));
+const added=mergedRecords.filter(x=>!oldKeys.has(x.recordKey)).length;
+const updatedAnnouncements=mergedRecords.filter(x=>x.announcementUpdated).length;
+const updateEntry={generatedAt:observedAt,added,updatedAnnouncements,total:mergedRecords.length,official:outcomes.map((o,i)=>({name:FEEDS[i].name,status:o.status==='fulfilled'?'success':'failed',fetched:o.status==='fulfilled'?o.value.items.length:0,error:o.status==='rejected'?String(o.reason?.message||o.reason):''})),sites:siteResults};
 const syncHistory=[updateEntry,...(previous?.syncHistory||[])].slice(0,3);
 
 const payload = {
@@ -127,8 +199,8 @@ const payload = {
   totalFetched: all.length,
   officialFetched: official.length,
   targetSites: siteResults,
-  recordCount: filtered.length,
-  records: filtered
+  recordCount: mergedRecords.length,
+  records: mergedRecords
 };
 const content = '/* Auto-generated by scripts/sync-contests.mjs. Do not edit manually. */\nwindow.ContestDiscoveryFeed = ' + JSON.stringify(payload, null, 2) + ';\n';
 await writeFile(OUTPUT, content, 'utf8');
