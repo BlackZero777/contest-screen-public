@@ -108,7 +108,7 @@ const filtered = dedupe(all.filter(isUsefulSearchClue))
   .slice(0, 700);
 if (!filtered.length) throw new Error('公開來源讀取成功，但沒有符合篩選條件的活動；為避免清空現有資料，停止更新。');
 let previous=null;
-try{const oldText=await readFile(OUTPUT,'utf8');const oldMatch=oldText.match(/window\\.ContestDiscoveryFeed\s*=\s*([\s\S]*);\s*$/);if(oldMatch)previous=JSON.parse(oldMatch[1]);}catch{}
+try{const oldText=await readFile(OUTPUT,'utf8');const oldMatch=oldText.match(/window\.ContestDiscoveryFeed\s*=\s*([\s\S]*);\s*$/);if(!oldMatch)throw new Error('舊版資料格式無法辨識，為避免遺失更新紀錄，停止覆寫。');previous=JSON.parse(oldMatch[1]);}catch(error){if(error.code!=='ENOENT')throw error;}
 const oldIds=new Set((previous?.records||[]).map(x=>x.UID).filter(Boolean));
 const updateEntry={generatedAt:new Date().toISOString(),added:filtered.filter(x=>x.UID&&!oldIds.has(x.UID)).length,total:filtered.length,official:outcomes.map((o,i)=>({name:FEEDS[i].name,status:o.status==='fulfilled'?'success':'failed',fetched:o.status==='fulfilled'?o.value.items.length:0,error:o.status==='rejected'?String(o.reason?.message||o.reason):''})),sites:siteResults};
 const syncHistory=[updateEntry,...(previous?.syncHistory||[])].slice(0,3);
