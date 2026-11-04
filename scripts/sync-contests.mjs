@@ -192,7 +192,7 @@ if (!official.length) {
   throw new Error('所有官方公開資料來源都失敗，為避免覆蓋舊快取而停止更新。' + errors.join('；'));
 }
 const siteOutcomes=await Promise.allSettled(TARGET_SITES.map(fetchTargetSite));
-const siteResults=siteOutcomes.map((o,i)=>({name:TARGET_SITES[i].name,url:TARGET_SITES[i].url,status:o.status==='fulfilled'?'success':'failed',fetched:o.status==='fulfilled'?o.value.fetched:0,kept:o.status==='fulfilled'?o.value.items.length:0,error:o.status==='rejected'?String(o.reason?.message||o.reason):''}));
+const siteResults=siteOutcomes.map((o,i)=>({name:TARGET_SITES[i].name,url:TARGET_SITES[i].url,status:o.status==='fulfilled'?'success':'failed',fetched:o.status==='fulfilled'?o.value.fetched:0,kept:o.status==='fulfilled'?o.value.items.length:0,entryPages:o.status==='fulfilled'?(o.value.entryPages||1):0,detailPages:o.status==='fulfilled'?(o.value.detailPages||0):0,error:o.status==='rejected'?String(o.reason?.message||o.reason):''}));
 const siteItems=siteOutcomes.flatMap(o=>o.status==='fulfilled'?o.value.items:[]);
 const all = [...official, ...siteItems];
 const filtered = dedupe(all.filter(isUsefulSearchClue))
