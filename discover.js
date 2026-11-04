@@ -92,7 +92,8 @@ function renderSyncHistory(){
   const sources=[...(e.sites||[]),...(e.official||[])];
   const success=sources.filter(x=>x.status==='success'||x.status==='empty').length;
   const failed=sources.filter(x=>x.status==='failed').length;
-  const noClue=(e.sites||[]).filter(x=>x.status==='success'&&!Number(x.kept||0)).length;\n  const noLinks=(e.sites||[]).filter(x=>x.status==='empty').length;
+  const noClue=(e.sites||[]).filter(x=>x.status==='success'&&!Number(x.kept||0)).length;
+  const noLinks=(e.sites||[]).filter(x=>x.status==='empty').length;
   const rows=sources.map(x=>{
    const isSite=(e.sites||[]).includes(x),n=isSite?Number(x.kept||0):Number(x.fetched||0);
    const label=x.status==='failed'?'讀取失敗':x.status==='empty'?'未擷取到列表連結':isSite?(n?'找到 '+n+' 筆':'本次未找到'):'成功 '+n+' 筆';
