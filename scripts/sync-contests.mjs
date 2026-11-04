@@ -191,10 +191,10 @@ if (!official.length) {
   const errors = outcomes.map((outcome, i) => outcome.status === 'rejected' ? FEEDS[i].name + ': ' + String(outcome.reason) : '').filter(Boolean);
   throw new Error('所有官方公開資料來源都失敗，為避免覆蓋舊快取而停止更新。' + errors.join('；'));
 }
-const pausedSources=new Set((previous?.manualSearchSources||[]).map(x=>x.url));
 let previous=null;
 try{const oldText=await readFile(OUTPUT,'utf8');const marker='window.ContestDiscoveryFeed = ';const begin=oldText.indexOf(marker);const finish=oldText.lastIndexOf(';');if(begin<0||finish<=begin)throw new Error('舊版資料格式無法辨識，為避免遺失更新紀錄，停止覆寫。');previous=JSON.parse(oldText.slice(begin+marker.length,finish));}catch(error){if(error.code!=='ENOENT')throw error;}
 const observedAt=new Date().toISOString();
+const pausedSources=new Set((previous?.manualSearchSources||[]).map(x=>x.url));
 const siteOutcomes=await Promise.allSettled(TARGET_SITES.map(site=>pausedSources.has(site.url)?Promise.resolve({manual:true,fetched:0,items:[],entryPages:0,detailPages:0}):fetchTargetSite(site)));
 const rawSiteResults=siteOutcomes.map((o,i)=>({name:TARGET_SITES[i].name,url:TARGET_SITES[i].url,status:o.status==='fulfilled'?(o.value.manual?'manual':o.value.fetched?'success':'empty'):'failed',fetched:o.status==='fulfilled'?o.value.fetched:0,kept:o.status==='fulfilled'?o.value.items.length:0,entryPages:o.status==='fulfilled'?(o.value.entryPages||0):0,detailPages:o.status==='fulfilled'?(o.value.detailPages||0):0,error:o.status==='rejected'?String(o.reason?.message||o.reason):''}));
 const sourceHealth={...(previous?.sourceHealth||{})};
@@ -241,6 +241,8 @@ const payload = {
   totalFetched: all.length,
   officialFetched: official.length,
   targetSites: siteResults,
+  sourceHealth,
+  manualSearchSources,
   recordCount: mergedRecords.length,
   records: mergedRecords
 };
