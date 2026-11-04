@@ -83,8 +83,15 @@ async function copyText(text){
  const area=document.createElement('textarea');area.value=text;area.setAttribute('readonly','');area.style.position='fixed';area.style.opacity='0';document.body.appendChild(area);area.select();
  const ok=document.execCommand('copy');area.remove();if(!ok)throw new Error('瀏覽器未允許複製，請改用手動選取文字。');
 }
+function renderManualSearchSources(){
+ const box=$('manualSearchSources');if(!box)return;
+ const items=feed.manualSearchSources||[];
+ if(!items.length){box.innerHTML='';return;}
+ box.innerHTML='<div class="notice amber"><b>需要手動搜尋的來源（連續三次未取得可用資料）</b><p>這些來源已暫停自動抓取。請直接開啟網站檢查；來源恢復或更換入口後，再恢復自動抓取。</p><div class="manual-search-list">'+items.map(x=>'<a target="_blank" rel="noopener noreferrer" href="'+esc(x.url)+'"><b>'+esc(x.name)+'</b><small>'+esc(x.reason||'連續三次未取得可用資料')+' ↗</small></a>').join('')+'</div></div>';
+}
 function renderSyncHistory(){
  const box=$('discoverySyncHistory');if(!box)return;
+ renderManualSearchSources();
  const history=(feed.syncHistory||[]).slice(0,3);
  if(!history.length){box.innerHTML='<div class="empty">尚無更新紀錄；下一次同步後開始累積。</div>';return;}
  const fmt=v=>{const x=new Date(v);return Number.isNaN(+x)?'時間未提供':x.toLocaleString('zh-TW',{hour12:false});};
