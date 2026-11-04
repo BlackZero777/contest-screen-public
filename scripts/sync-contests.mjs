@@ -16,8 +16,14 @@ const SEARCH_QUERIES = [
   '台灣 AI 音樂 歌曲 作曲 比賽 徵件 2026',
   '台灣 命名 標語 文案 徵件 比賽 2026',
   '台灣 詩詞 對聯 徵聯 短詩 徵稿 2026',
-  'site:bhuntr.com/tw/competitions 插畫 設計 比賽 2026',
-  'site:bhuntr.com/tw/competitions AI 音樂 文學 徵件 2026'
+  'site:bhuntr.com/tw 插畫 設計 AI 音樂 文學 競賽 徵件',
+  'site:news.idea-show.com 設計 插畫 漫畫 攝影 徵件 比賽',
+  'site:gda-tw.org/news/notelist.php 美術 設計 海報 徵件 競賽',
+  'site:ed.arte.gov.tw 藝術 美術 設計 學生 競賽 徵件',
+  'site:vcd.ntua.edu.tw/compnews 視覺傳達 設計 競賽 徵件',
+  'site:grants.moc.gov.tw 藝術 設計 創作 徵件 補助 申請',
+  'site:bhuntr.com/tw/competitions AI 音樂 文學 創作大賽',
+  'site:news.idea-show.com 徵件 徵稿 競賽 獎金'
 ];
 const RELEVANT = /設計|插畫|繪畫|美術|海報|漫畫|圖像|書法|攝影|動畫|影像|短影音|影片|視覺|藝術|創意|生成式|貼圖|平面|文學|文藝|詩|對聯|徵聯|標語|命名|徵稿|徵文|散文|小說|歌詞|文字|文案|劇本|寫作|音樂|歌曲|作曲|作詞|配樂|聲音|樂曲|徵件|競賽|比賽|徵選|公開徵求|創作|AI|logo/i;
 const EXCLUDE = /才藝表演|舞蹈比賽|體育競賽|運動賽|歌唱選秀|合唱比賽|歌唱比賽|歌唱競賽|音樂會|演唱會|徵才|徵人|招聘/i;
@@ -89,7 +95,7 @@ async function fetchSearchQuery(query, index) {
       UID: 'bing:' + link,
       title,
       descriptionFilterHtml: description,
-      sourceWebName: 'Bing 網頁搜尋（線索）',
+      sourceWebName: (() => { try { return new URL(link).hostname + '（搜尋線索）'; } catch { return 'Bing 網頁搜尋（線索）'; } })(),
       sourceWebPromote: link,
       comment: '此筆來自公開網頁搜尋摘要，不是主辦方核實資料。請開啟原始頁面確認是否為當年度有效徵件。'
     }, '網路搜尋線索');
@@ -136,7 +142,13 @@ const payload = {
   generatedAt: new Date().toISOString(),
   sources: [
     ...FEEDS.map(({ name, url }) => ({ name, url, type: 'official_public_data' })),
-    { name: 'Bing RSS 公開網頁搜尋', type: 'discovery_clues_only', queryCount: SEARCH_QUERIES.length }
+    { name: 'Bing RSS 公開網頁搜尋', type: 'discovery_clues_only', queryCount: SEARCH_QUERIES.length },
+    { name: '獎金獵人', url: 'https://bhuntr.com/tw', type: 'targeted_search_clue' },
+    { name: '點子秀', url: 'https://news.idea-show.com/', type: 'targeted_search_clue' },
+    { name: '中華民國美術設計協會', url: 'https://www.gda-tw.org/news/notelist.php', type: 'targeted_search_clue' },
+    { name: '臺灣藝術教育網', url: 'https://ed.arte.gov.tw/', type: 'targeted_search_clue' },
+    { name: '臺藝大視傳系', url: 'https://vcd.ntua.edu.tw/compnews', type: 'targeted_search_clue' },
+    { name: '文化部獎補助資訊網', url: 'https://grants.moc.gov.tw/', type: 'targeted_search_clue' }
   ],
   totalFetched: all.length,
   officialFetched: official.length,
