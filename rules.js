@@ -19,6 +19,7 @@ const RE={
  aiAllowed:/使用生成式ai|ai生成|ai創作|ai工具|人工智慧生成|ai生圖|ai圖轉影|可使用ai|允許使用ai/i,
  fee:/報名費|參賽費|保證金|材料費|製作費|報名費用|參賽費用|付費工具|指定軟體|授權費|報名免費|免報名費/i,
  deadline:/截止|截止日期|收件至|徵件至|報名至|交件期限|投稿期限/i,
+ studentOnly:/(?:僅限|只限|限於|限)\\s*(?:全國)?(?:大專院校|大學|研究所|高中職|高中|高職|專科)?\\s*(?:在學)?學生(?:參賽|報名|參加)?|學生專屬(?:競賽|比賽|徵件|組)?|限學生(?:參加|報名|參賽)?|在學學生限定|學生限定(?:競賽|比賽|徵件)?/i,
  groups:/概念設計組|產品設計組|視覺傳達組|數位媒體組|服務設計組|學生組|社會組|專業組|一般組|創意組|提案組|產品組/i,
  prelim:/初審|初選|第一階段|初審交件/i,
  final:/決審|複審|決選|入圍後|第二階段|決審交件/i,
@@ -82,6 +83,7 @@ function assess(text,opts){
  '製作負擔':'待評估工作量與時間。'
  };
  // Exclude only a confirmed hard barrier; never let one group dictate the whole contest if alternatives exist.
+ if(has(s,RE.studentOnly)){decision='跳過';feasibility='資格不符';exclusionReason='官方文字明確限定學生參賽；使用者為成年社會人士，第一階段即排除。';reasons.push('學生限定競賽：成年非學生身分不符合參賽資格，不列入候選。');}
  if(has(s,RE.hand)){decision='跳過';feasibility='不符合目前參賽方式';exclusionReason='官方條件若確實限定手繪／禁止數位工具，且無其他可行組別才排除';reasons.push('偵測到限定手繪或禁止數位工具的線索；須確認適用組別及是否存在其他可行組別。');}
  if(hasConcept&&hasProductGroup&&hasFinalPrototype){
    decision='初審可行／決審有實體交件或高投入風險';
