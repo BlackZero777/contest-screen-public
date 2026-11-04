@@ -12,7 +12,7 @@ on:
 
 concurrency:
   group: contest-sync-${{ github.ref }}
-  cancel-in-progress: true
+  cancel-in-progress: false
 
 permissions:
   contents: write
@@ -37,14 +37,43 @@ jobs:
           node test-rules.js
       - name: Synchronize public contest data
         run: node scripts/sync-contests.mjs
-      - name: Commit updated data cache
-        run: |
-          if git diff --quiet -- contest-feed.js; then
-            echo 'Contest cache is unchanged.'
-            exit 0
-          fi
-          git config user.name 'github-actions[bot]'
-          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add contest-feed.js
-          git commit -m 'Refresh public contest data cache'
-          git push
+      - name: Update public data cache through GitHub API (with retry)
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const owner = context.repo.owner;
+            const repo = context.repo.repo;
+            const path = 'contest-feed.js';
+            const content = fs.readFileSync(path, 'utf8');
+            const encoded = Buffer.from(content, 'utf8').toString('base64');
+            const sleep = ms => new Promise(resolve => setTimeout(resolve, ms));
+            let lastError;
+            for (let attempt = 1; attempt <= 5; attempt++) {
+              try {
+                const current = await github.rest.repos.getContent({ owner, repo, path, ref: 'main' });
+                const currentText = Buffer.from(current.data.content, 'base64').toString('utf8');
+                if (currentText === content) {
+                  core.info('Contest cache is unchanged; no commit required.');
+                  return;
+                }
+                await github.rest.repos.createOrUpdateFileContents({
+                  owner,
+                  repo,
+                  path,
+                  branch: 'main',
+                  message: 'Refresh public contest data cache',
+                  content: encoded,
+                  sha: current.data.sha
+                });
+                core.info('Contest cache updated through GitHub Contents API.');
+                return;
+              } catch (error) {
+                lastError = error;
+                const status = error.status || error.response?.status;
+                if (![409, 422, 500, 502, 503, 504].includes(status) || attempt === 5) throw error;
+                core.warning(`GitHub API update attempt ${attempt} failed (HTTP ${status}); retrying.`);
+                await sleep(1500 * attempt);
+              }
+            }
+            throw lastError;
