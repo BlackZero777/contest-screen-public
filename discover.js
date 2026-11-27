@@ -5,6 +5,65 @@ const API=[
  {name:'文化部公開徵選',url:'https://cloud.culture.tw/frontsite/trans/SearchShowAction.do?category=14&method=doFindTypeJ',kind:'徵選'}
 ];
 const $=id=>document.getElementById(id);
+// V3 deadline filter: shared logic, kept identical in browser and sync script.
+function contestDeadline(item) {
+ const clean=v=>String(v||'').normalize('NFKC').replace(/<[^>]*>/g,' ').replace(/&nbsp;|&#160;/gi,' ').replace(/\s+/g,' ');
+ const title=clean(item.title||item.titile),body=clean(item.descriptionFilterHtml||item.comment);
+ const posted=title.match(/^\s*(\d{1,2})\/(\d{1,2})\/(20\d{2})(?!\d)/);
+ const hint=posted?+posted[3]:null;
+ const token=String.raw`(?<![\d/])(?:(?:民國\s*)?(?:20\d{2}|\d{2,3})\s*年\s*\d{1,2}\s*月\s*\d{1,2}\s*日|20\d{2}[./-]\d{1,2}[./-]\d{1,2}|\d{1,2}\s*月\s*\d{1,2}\s*日|\d{1,2}[./-]\d{1,2})(?![\d/])`;
+ const weekday=String.raw`(?:\s*[（(](?:星期|週|周)?[一二三四五六日天][）)])?`;
+ const time=String.raw`(?:\s*(?:上午|下午|中午|晚上)?\s*\d{1,2}\s*(?::\s*\d{2}|[點時]\s*(?:\d{1,2}\s*分)?))?`;
+ const label=String.raw`(?:(?:徵件|報名|投稿|收件|交件|繳件|徵稿|徵選|申請)(?:截止(?:日期|時間|日)?|期間|日期|時間|期限|至|到)|截止(?:收件|報名|投稿|徵件|日期|時間|日)|(?:延長|展延)(?:報名|徵件|投稿|收件)?(?:至|到)|競賽收件)`;
+ const sep=String.raw`\s*[:：|｜╱/、]?\s*`;
+ function parse(raw,yHint){
+  const m=raw.match(/^(?:民國\s*)?(\d{2,4})\s*年\s*(\d{1,2})\s*月\s*(\d{1,2})\s*日$|^(20\d{2})[./-](\d{1,2})[./-](\d{1,2})$|^(\d{1,2})\s*月\s*(\d{1,2})\s*日$|^(\d{1,2})[./-](\d{1,2})$/);
+  if(!m)return null;
+  const explicit=!!(m[1]||m[4]);let y=m[1]?+m[1]:m[4]?+m[4]:yHint;
+  if(explicit&&y<1912)y+=1911;
+  const mo=+(m[2]||m[5]||m[7]||m[9]),d=+(m[3]||m[6]||m[8]||m[10]);
+  if(!y||y<2000||y>2100||mo<1||mo>12||d<1||d>31)return null;
+  const check=new Date(Date.UTC(y,mo-1,d));if(check.getUTCMonth()!==mo-1||check.getUTCDate()!==d)return null;
+  return {date:`${y}-${String(mo).padStart(2,'0')}-${String(d).padStart(2,'0')}`,explicit};
+ }
+ const found=[];
+ function add(raw,y){const p=parse(raw,y);if(p)found.push(p);}
+ for(const t of [title,body]){
+  const range=new RegExp(label+sep+'('+token+')'+weekday+time+String.raw`\s*(?:至|到|~|～|–|—)\s*(`+token+')','g');
+  const ranges=[];
+  for(const m of t.matchAll(range)){
+   const start=parse(m[1],hint);
+   let end=parse(m[2],start?+start.date.slice(0,4):hint);
+   if(end&&start&&!end.explicit&&end.date<start.date)end=parse(m[2],+start.date.slice(0,4)+1);
+   if(end)found.push({...end,explicit:end.explicit||!!start?.explicit});
+   ranges.push([m.index,m.index+m[0].length]);
+  }
+  const prefix=new RegExp(label+sep+String.raw`(?:即日起\s*(?:至|到)?\s*|(?:至|到)\s*)?(`+token+')','g');
+  for(const m of t.matchAll(prefix))if(!ranges.some(([a,b])=>m.index>=a&&m.index<b))add(m[1],hint);
+  const suffix=new RegExp('('+token+')'+weekday+time+String.raw`\s*[:：]?\s*(?:截止(?:收件|報名|投稿|徵件)?|截稿)(?!\s*(?:前|後))`,'g');
+  for(const m of t.matchAll(suffix))if(!ranges.some(([a,b])=>m.index>=a&&m.index<b))add(m[1],hint);
+  const table=t.match(/(?:報名|投稿|徵件|收件)截止\s*(?:日期|時間)?[\s\S]{0,300}?組別\s*時間\s*([\s\S]{0,500}?)(?=\s*[一二三四五六七八九十]+、|參賽資格|$)/);
+  if(table){const rows=new RegExp(String.raw`(?:學生組|職業組|社會組|一般組|[^\s]{1,12}組)\s*(`+token+')','g');for(const m of table[1].matchAll(rows))add(m[1],null);}
+ }
+ const explicit=found.filter(x=>x.explicit).sort((a,b)=>b.date.localeCompare(a.date))[0];
+ const latest=found.sort((a,b)=>b.date.localeCompare(a.date))[0];
+ if(latest&&(!explicit||latest.date>explicit.date))return {date:latest.date,confidence:'inferred'};
+ return explicit?{date:explicit.date,confidence:'explicit'}:{date:'',confidence:'unknown'};
+}
+function taipeiDate(now=new Date()){
+ const parts=new Intl.DateTimeFormat('en-CA',{timeZone:'Asia/Taipei',year:'numeric',month:'2-digit',day:'2-digit'}).formatToParts(now);
+ const get=k=>parts.find(p=>p.type===k).value;
+ return `${get('year')}-${get('month')}-${get('day')}`;
+}
+function isExpiredDeadline(info,today=taipeiDate()){
+ return info?.confidence==='explicit'&&!!info.date&&info.date<today;
+}
+function deadlineLabel(info){
+ return info?.confidence==='explicit'?'截止：'+info.date:info?.date?'截止日期待確認（線索：'+info.date+'）':'截止日期待確認';
+}
+
+function getDeadline(x){return x.deadlineInfo?.date?x.deadlineInfo:contestDeadline(x);}
+
 const STUDENT_ONLY=/(?:僅限|只限|限於|限)\s*(?:全國)?(?:大專院校|大學|研究所|高中職|高中|高職|專科)?\s*(?:在學)?學生(?:參賽|報名|參加)?|學生專屬(?:競賽|比賽|徵件|組)?|限學生(?:參加|報名|參賽)?|在學學生限定|學生限定(?:競賽|比賽|徵件)?|(?:全國|全球)?(?:華文)?學生[^。；;]{0,12}(?:比賽|競賽|大賽|文學獎|創作獎)/i;
 const TERMS={
  design:/設計|插畫|繪畫|美術|海報|漫畫|圖像|書法|攝影|動畫|影像|短影音|影片|視覺|藝術|創意|ai|生成式|貼圖|logo|平面/i,
@@ -17,7 +76,7 @@ function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;',
 function plain(s){return String(s||'').replace(/<[^>]*>/g,' ').replace(/&nbsp;/g,' ').replace(/&amp;/g,'&').replace(/\s+/g,' ').trim();}
 function date(s){if(!s)return '';const d=new Date(s);return Number.isNaN(+d)?String(s):d.toLocaleDateString('zh-TW',{year:'numeric',month:'2-digit',day:'2-digit'});}
 function allText(x){return [x.title,x.titile,x.category,x.showUnit,x.masterUnit,x.descriptionFilterHtml,x.comment,x.sourceWebName].flat().join(' ');}
-function relevance(x){const t=allText(x);return !STUDENT_ONLY.test(t)&&!TERMS.exclude.test(t)&&(TERMS.design.test(t)||TERMS.text.test(t)||TERMS.music.test(t)||/徵件|競賽|比賽|徵選|公開徵求|創作/i.test(t));}
+function relevance(x){const t=allText(x);return !isExpiredDeadline(getDeadline(x))&&!STUDENT_ONLY.test(t)&&!TERMS.exclude.test(t)&&(TERMS.design.test(t)||TERMS.text.test(t)||TERMS.music.test(t)||/徵件|競賽|比賽|徵選|公開徵求|創作/i.test(t));}
 function getTitle(x){return plain(x.title||x.titile||'未命名活動');}
 function getHost(x){return plain([].concat(x.masterUnit||[],x.showUnit||[],x.sourceWebName||[]).filter(Boolean).join('、'))||'資料未提供主辦單位';}
 function getLink(x){const candidate=[x.sourceWebPromote,x.webSales].find(u=>typeof u==='string'&&/^https?:\/\//i.test(u));return candidate||'';}
@@ -45,6 +104,7 @@ function buildHandoffPrompt(x){
  '資料類型：'+(x._kind||'公開資料線索'),
  '公開資料所列活動日期起訖：'+activityStart+' 至 '+activityEnd+'（這不一定是投稿截止日）',
  '資料更新日期：'+updatedAt,
+ '投稿期限線索：'+deadlineLabel(getDeadline(x)),
  '官方／活動連結線索：'+(official||'公開資料未提供直接活動網址'),
  '補充搜尋入口：'+searchUrl,
  '',
@@ -124,9 +184,9 @@ function render(){
   const dataStatus=x.announcementUpdated?'公告更新':x.isNew?'新發現':'持續收錄';
   const sourceCount=(x.sourceLinks||[]).length;
   const sourceLinks=(x.sourceLinks||[]).map(s=>s.url?'<a target="_blank" rel="noopener noreferrer" href="'+esc(s.url)+'">'+esc(s.name)+'</a>':esc(s.name)).join('、');
-  return '<tr><td class="discovery-name"><strong>'+esc(title)+'</strong><small>'+esc(host)+'</small>'+(sourceLinks?'<small>來源：'+sourceLinks+'</small>':'')+'<p>'+esc(excerpt)+'</p></td><td>'+esc(candidateType(x))+'</td><td>'+esc(activityDate)+'</td><td><span class="record-link-state '+(x.announcementUpdated?'is-saved':'is-new')+'">'+dataStatus+'</span><small>來源 '+sourceCount+' 個</small></td><td><span class="record-link-state '+statusClass+'">'+esc(decision)+'</span></td><td class="discovery-row-actions"><a target="_blank" rel="noopener noreferrer" href="'+esc(official)+'">搜尋官方簡章 ↗</a>'+(link?'<a target="_blank" rel="noopener noreferrer" href="'+esc(link)+'">來源 ↗</a>':'')+'<button type="button" class="handoff-secondary" data-save-record="'+idx+'">'+(saved?'查看／更新紀錄':'＋ 記錄到我的競賽紀錄')+'</button><button type="button" class="handoff-primary" data-handoff="copy" data-record-index="'+idx+'">複製查核指令</button></td></tr>';
+  return '<tr><td class="discovery-name"><strong>'+esc(title)+'</strong><small>'+esc(host)+'</small>'+(sourceLinks?'<small>來源：'+sourceLinks+'</small>':'')+'<p>'+esc(excerpt)+'</p></td><td>'+esc(candidateType(x))+'</td><td>'+esc(activityDate)+'<small>'+esc(deadlineLabel(getDeadline(x)))+'</small></td><td><span class="record-link-state '+(x.announcementUpdated?'is-saved':'is-new')+'">'+dataStatus+'</span><small>來源 '+sourceCount+' 個</small></td><td><span class="record-link-state '+statusClass+'">'+esc(decision)+'</span></td><td class="discovery-row-actions"><a target="_blank" rel="noopener noreferrer" href="'+esc(official)+'">搜尋官方簡章 ↗</a>'+(link?'<a target="_blank" rel="noopener noreferrer" href="'+esc(link)+'">來源 ↗</a>':'')+'<button type="button" class="handoff-secondary" data-save-record="'+idx+'">'+(saved?'查看／更新紀錄':'＋ 記錄到我的競賽紀錄')+'</button><button type="button" class="handoff-primary" data-handoff="copy" data-record-index="'+idx+'">複製查核指令</button></td></tr>';
  }).join('');
- box.innerHTML='<div class="discovery-list-wrap"><table class="discovery-list"><thead><tr><th>競賽名稱／主辦單位</th><th>線索類型</th><th>公開資料日期</th><th>資料狀態</th><th>我的決策</th><th>操作</th></tr></thead><tbody>'+rows+'</tbody></table></div>';
+ box.innerHTML='<div class="discovery-list-wrap"><table class="discovery-list"><thead><tr><th>競賽名稱／主辦單位</th><th>線索類型</th><th>公開資料日期／投稿期限</th><th>資料狀態</th><th>我的決策</th><th>操作</th></tr></thead><tbody>'+rows+'</tbody></table></div>';
  if(list.length>50)box.insertAdjacentHTML('beforeend','<div class="empty">目前顯示前 50 筆。請輸入關鍵字或縮小分類以聚焦結果。</div>');
 }
 async function load(){const btn=$('loadOpenData'),status=$('discoveryStatus'),box=$('discoveryResults');if(btn){btn.disabled=true;btn.textContent='正在讀取公開資料…';}if(status)status.textContent='正在嘗試連線文化部公開資料，可能需要數秒。';if(box)box.innerHTML='<div class="empty">正在載入競賽活動與公開徵選資料…</div>';try{const outcomes=await Promise.allSettled(API.map(fetchFeed));const success=outcomes.flatMap((r,i)=>r.status==='fulfilled'?r.value.map(x=>({...x,_source:API[i].name})):[]);if(!success.length){const errors=outcomes.map((r,i)=>API[i].name+': '+(r.status==='rejected'?(r.reason&&r.reason.message||'讀取失敗'):'沒有資料')).join('；');if(records.length){render();if(status)status.textContent='即時讀取失敗，已保留最近同步資料（'+(loadedAt&&!Number.isNaN(+loadedAt)?loadedAt.toLocaleString('zh-TW'):'同步時間未提供')+'）。';}else{if(status)status.textContent='無法直接讀取資料來源。可能是瀏覽器跨來源限制或來源暫時無回應。';if(box)box.innerHTML='<div class="notice amber"><b>自動讀取未成功</b><p>'+esc(errors)+'</p><p>請使用下方官方資料連結與搜尋捷徑。首次同步需先由 GitHub Actions 成功執行。</p></div>';}return;}records=uniq(success.filter(relevance));loadedAt=new Date();render();if(status)status.textContent='已讀取 '+success.length+' 筆公開資料，整理出 '+records.length+' 筆相關線索。來源每日更新；每筆活動仍須回官方頁面核對。';}catch(e){if(status)status.textContent='讀取失敗：'+(e.message||'未知錯誤');if(box)box.innerHTML='<div class="empty">讀取資料時發生問題。請稍後再試，或改用官方資料連結與搜尋捷徑。</div>';}finally{if(btn){btn.disabled=false;btn.textContent='重新搜尋公開徵件資料 ↻';}}}
