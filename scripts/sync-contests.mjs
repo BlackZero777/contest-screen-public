@@ -4,6 +4,63 @@ import path from 'node:path';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const OUTPUT = path.join(ROOT, 'contest-feed.js');
+// V3 deadline filter: shared logic, kept identical in browser and sync script.
+function contestDeadline(item) {
+ const clean=v=>String(v||'').normalize('NFKC').replace(/<[^>]*>/g,' ').replace(/&nbsp;|&#160;/gi,' ').replace(/\s+/g,' ');
+ const title=clean(item.title||item.titile),body=clean(item.descriptionFilterHtml||item.comment);
+ const posted=title.match(/^\s*(\d{1,2})\/(\d{1,2})\/(20\d{2})(?!\d)/);
+ const hint=posted?+posted[3]:null;
+ const token=String.raw`(?<![\d/])(?:(?:民國\s*)?(?:20\d{2}|\d{2,3})\s*年\s*\d{1,2}\s*月\s*\d{1,2}\s*日|20\d{2}[./-]\d{1,2}[./-]\d{1,2}|\d{1,2}\s*月\s*\d{1,2}\s*日|\d{1,2}[./-]\d{1,2})(?![\d/])`;
+ const weekday=String.raw`(?:\s*[（(](?:星期|週|周)?[一二三四五六日天][）)])?`;
+ const time=String.raw`(?:\s*(?:上午|下午|中午|晚上)?\s*\d{1,2}\s*(?::\s*\d{2}|[點時]\s*(?:\d{1,2}\s*分)?))?`;
+ const label=String.raw`(?:(?:徵件|報名|投稿|收件|交件|繳件|徵稿|徵選|申請)(?:截止(?:日期|時間|日)?|期間|日期|時間|期限|至|到)|截止(?:收件|報名|投稿|徵件|日期|時間|日)|(?:延長|展延)(?:報名|徵件|投稿|收件)?(?:至|到)|競賽收件)`;
+ const sep=String.raw`\s*[:：|｜╱/、]?\s*`;
+ function parse(raw,yHint){
+  const m=raw.match(/^(?:民國\s*)?(\d{2,4})\s*年\s*(\d{1,2})\s*月\s*(\d{1,2})\s*日$|^(20\d{2})[./-](\d{1,2})[./-](\d{1,2})$|^(\d{1,2})\s*月\s*(\d{1,2})\s*日$|^(\d{1,2})[./-](\d{1,2})$/);
+  if(!m)return null;
+  const explicit=!!(m[1]||m[4]);let y=m[1]?+m[1]:m[4]?+m[4]:yHint;
+  if(explicit&&y<1912)y+=1911;
+  const mo=+(m[2]||m[5]||m[7]||m[9]),d=+(m[3]||m[6]||m[8]||m[10]);
+  if(!y||y<2000||y>2100||mo<1||mo>12||d<1||d>31)return null;
+  const check=new Date(Date.UTC(y,mo-1,d));if(check.getUTCMonth()!==mo-1||check.getUTCDate()!==d)return null;
+  return {date:`${y}-${String(mo).padStart(2,'0')}-${String(d).padStart(2,'0')}`,explicit};
+ }
+ const found=[];
+ function add(raw,y){const p=parse(raw,y);if(p)found.push(p);}
+ for(const t of [title,body]){
+  const range=new RegExp(label+sep+'('+token+')'+weekday+time+String.raw`\s*(?:至|到|~|～|–|—)\s*(`+token+')','g');
+  const ranges=[];
+  for(const m of t.matchAll(range)){
+   const start=parse(m[1],hint);
+   let end=parse(m[2],start?+start.date.slice(0,4):hint);
+   if(end&&start&&!end.explicit&&end.date<start.date)end=parse(m[2],+start.date.slice(0,4)+1);
+   if(end)found.push({...end,explicit:end.explicit||!!start?.explicit});
+   ranges.push([m.index,m.index+m[0].length]);
+  }
+  const prefix=new RegExp(label+sep+String.raw`(?:即日起\s*(?:至|到)?\s*|(?:至|到)\s*)?(`+token+')','g');
+  for(const m of t.matchAll(prefix))if(!ranges.some(([a,b])=>m.index>=a&&m.index<b))add(m[1],hint);
+  const suffix=new RegExp('('+token+')'+weekday+time+String.raw`\s*[:：]?\s*(?:截止(?:收件|報名|投稿|徵件)?|截稿)(?!\s*(?:前|後))`,'g');
+  for(const m of t.matchAll(suffix))if(!ranges.some(([a,b])=>m.index>=a&&m.index<b))add(m[1],hint);
+  const table=t.match(/(?:報名|投稿|徵件|收件)截止\s*(?:日期|時間)?[\s\S]{0,300}?組別\s*時間\s*([\s\S]{0,500}?)(?=\s*[一二三四五六七八九十]+、|參賽資格|$)/);
+  if(table){const rows=new RegExp(String.raw`(?:學生組|職業組|社會組|一般組|[^\s]{1,12}組)\s*(`+token+')','g');for(const m of table[1].matchAll(rows))add(m[1],null);}
+ }
+ const explicit=found.filter(x=>x.explicit).sort((a,b)=>b.date.localeCompare(a.date))[0];
+ const latest=found.sort((a,b)=>b.date.localeCompare(a.date))[0];
+ if(latest&&(!explicit||latest.date>explicit.date))return {date:latest.date,confidence:'inferred'};
+ return explicit?{date:explicit.date,confidence:'explicit'}:{date:'',confidence:'unknown'};
+}
+function taipeiDate(now=new Date()){
+ const parts=new Intl.DateTimeFormat('en-CA',{timeZone:'Asia/Taipei',year:'numeric',month:'2-digit',day:'2-digit'}).formatToParts(now);
+ const get=k=>parts.find(p=>p.type===k).value;
+ return `${get('year')}-${get('month')}-${get('day')}`;
+}
+function isExpiredDeadline(info,today=taipeiDate()){
+ return info?.confidence==='explicit'&&!!info.date&&info.date<today;
+}
+function deadlineLabel(info){
+ return info?.confidence==='explicit'?'截止：'+info.date:info?.date?'截止日期待確認（線索：'+info.date+'）':'截止日期待確認';
+}
+
 const FEEDS = [
   { name: '文化部競賽活動', url: 'https://cloud.culture.tw/frontsite/trans/SearchShowAction.do?category=13&method=doFindTypeJ', kind: '競賽' },
   { name: '文化部公開徵選', url: 'https://cloud.culture.tw/frontsite/trans/SearchShowAction.do?category=14&method=doFindTypeJ', kind: '徵選' }
@@ -63,7 +120,7 @@ function extractPageText(html){
  const title=(html.match(/<title[^>]*>([\s\S]*?)<\/title>/i)||[])[1]||'';
  const headings=[...html.matchAll(/<h[1-3][^>]*>([\s\S]*?)<\/h[1-3]>/gi)].map(m=>decodeHtml(m[1])).filter(Boolean);
  const body=String(html||'').replace(/<script[\s\S]*?<\/script>/gi,' ').replace(/<style[\s\S]*?<\/style>/gi,' ').replace(/<nav[\s\S]*?<\/nav>/gi,' ').replace(/<footer[\s\S]*?<\/footer>/gi,' ');
- return [decodeHtml(title),...headings,decodeHtml(body)].filter(Boolean).join(' ').slice(0,6000);
+ return [decodeHtml(title),...headings,decodeHtml(body)].filter(Boolean).join(' ').slice(0,16000);
 }
 async function fetchHtml(url,timeout=16000){
  const res=await fetch(url,{headers:{Accept:'text/html,application/xhtml+xml','User-Agent':'Mozilla/5.0 (compatible; ContestScreenWorkbench/3.1; +https://github.com/BlackZero777/contest-screen-public)'},signal:AbortSignal.timeout(timeout)});
@@ -214,6 +271,12 @@ const manualUrls=new Set(manualSearchSources.map(x=>x.url));
 const siteResults=rawSiteResults.map(x=>manualUrls.has(x.url)?{...x,status:'manual',error:x.error||'已暫停自動抓取，請手動搜尋'}:x);
 const siteItems=siteOutcomes.flatMap(o=>o.status==='fulfilled'?o.value.items:[]);
 const all = [...official, ...siteItems];
+// Keep confirmed deadline evidence when an expired detail page cannot be fetched.
+const deadlineCache={...(previous?.deadlineCache||{})};
+const deadlineKey=x=>x.sourceWebPromote||x.webSales||x.UID||'';
+for(const x of previous?.records||[]){const key=deadlineKey(x),info=x.deadlineInfo||contestDeadline(x);if(key&&info.confidence==='explicit'&&!deadlineCache[key])deadlineCache[key]=info;}
+for(const x of all){const key=deadlineKey(x),parsed=contestDeadline(x);const hasDetail=!!String(x.descriptionFilterHtml||'').trim();x.deadlineInfo=parsed.confidence==='explicit'?parsed:(!hasDetail&&key&&deadlineCache[key]?deadlineCache[key]:parsed);if(key&&parsed.confidence==='explicit')deadlineCache[key]=parsed;else if(key&&hasDetail)delete deadlineCache[key];}
+
 const filtered = dedupe(all.filter(isUsefulSearchClue))
   .sort((a, b) => {
     const aSearch = a._kind === '指定網站線索' ? 1 : 0;
@@ -223,7 +286,8 @@ const filtered = dedupe(all.filter(isUsefulSearchClue))
 if (!filtered.length) throw new Error('公開來源讀取成功，但沒有符合篩選條件的活動；為避免清空現有資料，停止更新。');
 
 
-const mergedRecords=mergeContestRecords(filtered,previous,observedAt)
+const active=filtered.filter(x=>!isExpiredDeadline(x.deadlineInfo,taipeiDate(new Date(observedAt))));
+const mergedRecords=mergeContestRecords(active,previous,observedAt)
   .sort((a,b)=>Number(b.isNew)-Number(a.isNew)||Number(b.announcementUpdated)-Number(a.announcementUpdated)||String(b.editModifyDate||b.startDate||'').localeCompare(String(a.editModifyDate||a.startDate||'')))
   .slice(0,700);
 const oldKeys=new Set((previous?.records||[]).map(x=>x.recordKey||contestKey(x)));
@@ -248,9 +312,10 @@ const payload = {
   targetSites: siteResults,
   sourceHealth,
   manualSearchSources,
+  deadlineCache,
   recordCount: mergedRecords.length,
   records: mergedRecords
 };
 const content = '/* Auto-generated by scripts/sync-contests.mjs. Do not edit manually. */\nwindow.ContestDiscoveryFeed = ' + JSON.stringify(payload, null, 2) + ';\n';
 await writeFile(OUTPUT, content, 'utf8');
-console.log('Synced ' + official.length + ' official records and ' + siteItems.length + ' direct-site clues; kept ' + filtered.length + ' candidates.');
+console.log('Synced ' + official.length + ' official records and ' + siteItems.length + ' direct-site clues; kept ' + filtered.length + ' candidates; excluded '+(filtered.length-active.length)+' expired deadlines.');
